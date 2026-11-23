@@ -1,0 +1,28 @@
+{
+  "name": "yorumarac",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "PGLITE_DIR=./.pglite tsx watch src/dev.ts",
+    "typecheck": "tsc"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.1",
+    "hono": "^4.13.21"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17",
+    "@fontsource/barlow": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@hono/node-server": "^2.1.11",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  }
+}
