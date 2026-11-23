@@ -94,9 +94,10 @@ export function getDb(): Db {
     // Yalnızca yerel geliştirme: bağlantı adresi yoksa bellek içi / dosya tabanlı PGlite.
     instance = new Db(async () => {
       const mod = "@electric-sql/pglite";
-      const { PGlite } = (await import(/* @vite-ignore */ mod)) as typeof import("@electric-sql/pglite");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { PGlite } = (await import(/* @vite-ignore */ mod)) as any;
       const pg = new PGlite(process.env.PGLITE_DIR ?? undefined);
-      return async (text, params) => (await pg.query<Row>(text, params)).rows.map(normalize);
+      return async (text, params) => ((await pg.query(text, params)) as { rows: Row[] }).rows.map(normalize);
     });
   }
   return instance;

@@ -2,7 +2,7 @@
 import { serve } from "@hono/node-server";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
-import app from "./app";
+import app from "../src/app";
 
 const root = new Hono();
 root.use("*", serveStatic({ root: "./public" }));
