@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "dev": "PGLITE_DIR=./.pglite tsx watch scripts/dev.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "build": "esbuild src/app.tsx --bundle --platform=node --format=esm --target=node22 --outfile=dist/app.js --packages=external --jsx=automatic --jsx-import-source=hono/jsx"
   },
   "license": "ISC",
   "dependencies": {
@@ -16,9 +17,10 @@
     "@fontsource/barlow": "^5.3.0",
     "@fontsource/barlow-condensed": "^5.3.0",
     "@hono/node-server": "^2.1.11",
+    "@types/node": "^26.6.6",
+    "esbuild": "^0.28.2",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
-    "@types/node": "^26.6.6"
+    "typescript": "^7.0.2"
   },
   "private": true,
   "type": "module",

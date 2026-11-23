@@ -1,6 +1,7 @@
-// Vercel giriş noktası: Hono uygulamasını dışa aktarır.
+// Vercel giriş noktası. Uygulama derleme adımında (npm run build) dist/app.js olarak tek dosyada paketlenir.
 import { Hono } from "hono";
-import site from "./app.js";
+// @ts-ignore: derleme çıktısı, kaynakta bulunmaz
+import site from "../dist/app.js";
 
 const app = new Hono();
 app.route("/", site);
