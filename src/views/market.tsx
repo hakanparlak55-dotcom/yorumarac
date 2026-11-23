@@ -1,6 +1,6 @@
-import type { Row } from "../data/market";
-import { slugify } from "../data/categories";
-import { Change, Icon, tl } from "./layout";
+import type { Row } from "../data/market/index.js";
+import { slugify } from "../data/categories.js";
+import { Change, Icon, tl } from "./layout.js";
 
 const bodyIcon = (b: string) => (b === "sedan" ? "otomobil" : b);
 const bodyName: Record<string, string> = { hatchback: "Hatchback", sedan: "Sedan", stationwagon: "SW", suv: "SUV", pickup: "Pickup", minivan: "Minivan", ticari: "Ticari", coupe: "Coupe" };

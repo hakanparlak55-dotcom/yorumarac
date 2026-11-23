@@ -1,4 +1,4 @@
-import type { Body, BrandPrices, Fuel } from "../types";
+import type { Body, BrandPrices, Fuel } from "../types.js";
 
 /** [model, gövde, paket, yakıt, motor, vites, {ay: fiyat}] — fiyatı olmayan ay o pakete dahil edilmez. */
 export type PriceRow = [model: string, body: Body, trim: string, fuel: Fuel, engine: string, gearbox: string, prices: Record<string, number>, category?: string];

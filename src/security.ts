@@ -1,4 +1,4 @@
-import { env } from "./env";
+import { env } from "./env.js";
 import type { MiddlewareHandler } from "hono";
 
 // İmza anahtarı ortam değişkeninden gelir (depo herkese açık; anahtar kodda tutulmaz).

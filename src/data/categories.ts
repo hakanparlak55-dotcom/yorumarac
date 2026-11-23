@@ -1,4 +1,4 @@
-import { carCatalog } from "./cars";
+import { carCatalog } from "./cars.js";
 
 export type Category = {
   slug: string;

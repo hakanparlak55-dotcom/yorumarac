@@ -1,5 +1,5 @@
 // Fiat binek fiyat listesi. Tavsiye edilen anahtar teslim liste fiyatları (TL).
-import { buildBrand, type PriceRow } from "./build";
+import { buildBrand, type PriceRow } from "./build.js";
 
 const rows: PriceRow[] = [
   ["Egea", "sedan", "Easy", "Dizel", "1.6 Multijet 130 hp", "Manuel", { "2026-10": 1499900, "2026-11": 1499900 }],

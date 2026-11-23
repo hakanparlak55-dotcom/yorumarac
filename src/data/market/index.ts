@@ -1,6 +1,6 @@
-import { slugify } from "../categories";
-import type { Body, Fuel, MonthPrices } from "./types";
-import { months } from "./months";
+import { slugify } from "../categories.js";
+import type { Body, Fuel, MonthPrices } from "./types.js";
+import { months } from "./months.js";
 
 export type Row = {
   key: string;

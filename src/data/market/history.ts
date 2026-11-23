@@ -1,6 +1,6 @@
 // Model bazında kasa geçmişi. Anahtar: kategori/marka-slug/model-slug
 // Yıllar kasanın ilk satışa çıktığı yılı gösterir (Avrupa / Türkiye).
-import type { ModelHistory } from "./types";
+import type { ModelHistory } from "./types.js";
 
 const wiki = (t: string) => `https://en.wikipedia.org/wiki/${t}`;
 

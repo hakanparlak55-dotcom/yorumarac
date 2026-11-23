@@ -1,5 +1,5 @@
 // Volkswagen binek fiyat listesi. Tavsiye edilen anahtar teslim liste fiyatları (TL).
-import { buildBrand, type PriceRow } from "./build";
+import { buildBrand, type PriceRow } from "./build.js";
 
 const rows: PriceRow[] = [
   ["Taigo", "suv", "Life", "Benzin", "1.0 TSI 95 PS", "Manuel", { "2026-10": 2292000, "2026-11": 2292100 }],

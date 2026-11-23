@@ -1,5 +1,5 @@
 // Renault binek fiyat listesi. Tavsiye edilen anahtar teslim liste fiyatları (TL).
-import { buildBrand, type PriceRow } from "./build";
+import { buildBrand, type PriceRow } from "./build.js";
 
 const rows: PriceRow[] = [
   ["Clio", "hatchback", "evolution plus", "Benzin", "TCe 115 hp", "EDC otomatik", { "2026-10": 1830000, "2026-11": 1830000 }],

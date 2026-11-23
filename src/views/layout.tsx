@@ -1,6 +1,6 @@
 import type { Child } from "hono/jsx";
-import { categories } from "../data/categories";
-import { tickerItems } from "../data/market";
+import { categories } from "../data/categories.js";
+import { tickerItems } from "../data/market/index.js";
 
 export const SITE = "YorumAraç";
 export const ORIGIN = "https://yorumarac.com";

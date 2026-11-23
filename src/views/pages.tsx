@@ -1,9 +1,9 @@
-import type { Issue, ModelStats, Review } from "../db";
-import { categories, type Category, modelsFor, slugify } from "../data/categories";
-import { AgainWidget, IssueRow, modelHref, ReviewCard, Scorecard } from "./components";
-import { Breadcrumb, Change, Icon, Plate, tl } from "./layout";
-import { movers, rows as marketRows, type Row } from "../data/market";
-import type { ModelHistory } from "../data/market/types";
+import type { Issue, ModelStats, Review } from "../db.js";
+import { categories, type Category, modelsFor, slugify } from "../data/categories.js";
+import { AgainWidget, IssueRow, modelHref, ReviewCard, Scorecard } from "./components.js";
+import { Breadcrumb, Change, Icon, Plate, tl } from "./layout.js";
+import { movers, rows as marketRows, type Row } from "../data/market/index.js";
+import type { ModelHistory } from "../data/market/types.js";
 
 const popular: [string, string, string][] = [
   ["otomobil", "Fiat", "Egea"], ["otomobil", "Renault", "Clio"], ["otomobil", "Toyota", "Corolla"],

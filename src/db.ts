@@ -1,4 +1,4 @@
-import type { Db } from "./sql";
+import type { Db } from "./sql.js";
 
 export type Review = {
   id: number; category: string; brand: string; brand_slug: string; model: string; model_slug: string;

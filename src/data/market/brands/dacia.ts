@@ -1,6 +1,6 @@
 // Dacia fiyat listesi. Tavsiye edilen anahtar teslim liste fiyatları (TL).
 // Ekim tablosunda iki Jogger satırının paket adı belirsiz olduğu için o satırlarda Ekim fiyatı yok.
-import { buildBrand, type PriceRow } from "./build";
+import { buildBrand, type PriceRow } from "./build.js";
 
 const rows: PriceRow[] = [
   ["Logan", "sedan", "essential", "Benzin", "TCe 100", "Manuel", { "2026-10": 1470000, "2026-11": 1470000 }],

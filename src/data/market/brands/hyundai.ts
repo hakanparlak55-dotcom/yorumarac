@@ -1,5 +1,5 @@
 // Hyundai binek fiyat listesi. Tavsiye edilen anahtar teslim liste fiyatları (TL).
-import { buildBrand, type PriceRow } from "./build";
+import { buildBrand, type PriceRow } from "./build.js";
 
 const same = (p: number) => ({ "2026-10": p, "2026-11": p });
 const rows: PriceRow[] = [

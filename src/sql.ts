@@ -1,4 +1,4 @@
-import { env } from "./env";
+import { env } from "./env.js";
 // Küçük bir veritabanı katmanı: canlıda Neon (Postgres, HTTP), yerelde gömülü PGlite.
 // Sorgular `?` yer tutucusuyla yazılır; burada Postgres'in `$1, $2…` biçimine çevrilir.
 

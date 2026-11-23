@@ -4,17 +4,17 @@ import type { Child } from "hono/jsx";
 import {
   againBoard, brandCounts, categoryCounts, modelCounts, modelIssues, modelKey, modelReviews,
   modelStats, myVotes, now, recentReviews, siteTotals, topIssues,
-} from "./db";
-import { type Db, getDb } from "./sql";
-import { checkForm, formStamp, sameOrigin, securityHeaders } from "./security";
-import { currentMonth, modelRows, monthLabel, movers, rows as marketRows, sources as marketSources } from "./data/market";
-import { historyFor } from "./data/market/history";
-import { brandBySlug, categories, categoryBySlug, modelsFor, slugify } from "./data/categories";
-import { Layout, ORIGIN, SITE } from "./views/layout";
+} from "./db.js";
+import { type Db, getDb } from "./sql.js";
+import { checkForm, formStamp, sameOrigin, securityHeaders } from "./security.js";
+import { currentMonth, modelRows, monthLabel, movers, rows as marketRows, sources as marketSources } from "./data/market/index.js";
+import { historyFor } from "./data/market/history.js";
+import { brandBySlug, categories, categoryBySlug, modelsFor, slugify } from "./data/categories.js";
+import { Layout, ORIGIN, SITE } from "./views/layout.js";
 import {
   BrandPage, CategoriesPage, CategoryPage, Home, ListPage, ModelPage, SearchPage, TextPage, WritePage,
-} from "./views/pages";
-import { MarketPage } from "./views/market";
+} from "./views/pages.js";
+import { MarketPage } from "./views/market.js";
 
 type C = Context<{ Variables: { voter: string } }>;
 const app = new Hono<{ Variables: { voter: string } }>();

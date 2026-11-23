@@ -1,5 +1,5 @@
 // Toyota binek fiyat listesi. Tavsiye edilen anahtar teslim liste fiyatları (TL).
-import { buildBrand, type PriceRow } from "./build";
+import { buildBrand, type PriceRow } from "./build.js";
 
 const rows: PriceRow[] = [
   ["Corolla", "sedan", "Vision Plus", "Benzin", "1.5 125 hp", "Multidrive S", { "2026-10": 2545500, "2026-11": 2545500 }],

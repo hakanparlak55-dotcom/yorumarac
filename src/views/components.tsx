@@ -1,7 +1,7 @@
-import type { Issue, ModelStats, Review } from "../db";
-import { modelKey } from "../db";
-import { categoryBySlug } from "../data/categories";
-import { fmt1, fmtKm, when } from "./layout";
+import type { Issue, ModelStats, Review } from "../db.js";
+import { modelKey } from "../db.js";
+import { categoryBySlug } from "../data/categories.js";
+import { fmt1, fmtKm, when } from "./layout.js";
 
 export const modelHref = (cat: string, b: string, m: string) => `/${cat}/${b}/${m}`;
 
