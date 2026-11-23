@@ -77,6 +77,7 @@ const normalize = (r: Row) => {
   return r;
 };
 
+export const NO_DB = "NO_DB";
 let instance: Db | null = null;
 
 export function getDb(): Db {
@@ -90,6 +91,12 @@ export function getDb(): Db {
         types: { getTypeParser: ((oid: number, fmt?: "text" | "binary") => (oid === 20 || oid === 1700 ? Number : types.getTypeParser(oid, fmt))) as never },
       });
       return (text, params) => sql.query(text, params) as Promise<Row[]>;
+    });
+  } else if (env("VERCEL")) {
+    // Canlıda veritabanı henüz bağlanmadıysa: okumalar boş döner, yazmalar anlaşılır bir hata verir.
+    instance = new Db(async () => async (text) => {
+      if (/^\s*(SELECT|CREATE|ALTER)/i.test(text)) return [];
+      throw new Error(NO_DB);
     });
   } else {
     // Yalnızca yerel geliştirme: bağlantı adresi yoksa bellek içi / dosya tabanlı PGlite.

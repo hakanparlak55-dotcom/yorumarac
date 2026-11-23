@@ -5,7 +5,7 @@ import {
   againBoard, brandCounts, categoryCounts, modelCounts, modelIssues, modelKey, modelReviews,
   modelStats, myVotes, now, recentReviews, siteTotals, topIssues,
 } from "./db.js";
-import { type Db, getDb } from "./sql.js";
+import { type Db, getDb, NO_DB } from "./sql.js";
 import { checkForm, formStamp, sameOrigin, securityHeaders } from "./security.js";
 import { currentMonth, modelRows, monthLabel, movers, rows as marketRows, sources as marketSources } from "./data/market/index.js";
 import { historyFor } from "./data/market/history.js";
@@ -369,6 +369,10 @@ app.get("/:cat/:brand/:model", async (c) => {
 
 app.notFound((c) => notFound(c as unknown as C));
 app.onError((err, c) => {
+  if (err instanceof Error && err.message === NO_DB) {
+    if (c.req.path.startsWith("/api/")) return c.json({ error: "Kayıt şu an geçici olarak kapalı." }, 503);
+    return c.html(<Layout title="Geçici olarak kapalı" path={c.req.path} noindex><div class="wrap page narrow"><h1 class="page-h">Kayıt geçici olarak kapalı</h1><p class="page-lead">Deneyim ve sorun kaydı kısa bir süre için kapalı. Birazdan tekrar dene.</p><p><a class="btn btn-blue" href="/">Ana sayfa</a></p></div></Layout>, 503);
+  }
   console.error(err);
   return c.html(<Layout title="Bir hata oluştu" path={c.req.path} noindex><div class="wrap page narrow"><h1 class="page-h">Bir şeyler ters gitti</h1><p class="page-lead">Sayfa yüklenemedi. Birkaç saniye sonra yenile; sorun sürerse merhaba@yorumarac.com adresine yaz.</p></div></Layout>, 500);
 });
