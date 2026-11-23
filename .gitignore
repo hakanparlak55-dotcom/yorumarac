@@ -2,3 +2,4 @@ node_modules
 .pglite
 .vercel
 .env*
+public/_mock/

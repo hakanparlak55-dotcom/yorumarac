@@ -281,6 +281,138 @@ p{margin:0}
 
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:8px;font-weight:600;z-index:60}
 
+/* ---------- Simgeler, fiyatlar, kasa geçmişi ---------- */
+.ico{width:56px;height:28px;color:var(--ink);flex:none}
+.ico-s{width:40px;height:20px}
+.ico-l{width:84px;height:42px}
+
+/* Üst menü: fiyatlar öne */
+.head-nav a.hot{color:var(--blue)}
+
+/* Borsa şeridi */
+.ticker{background:var(--ink);color:#fff;overflow:hidden;white-space:nowrap;font-size:14px}
+.ticker-row{display:inline-flex;padding:9px 0}
+.ticker-set{display:inline-flex;gap:28px;padding-right:28px}
+.ticker-set:first-child{padding-left:24px}
+.ticker b{font-weight:600}
+.ticker .px{font-variant-numeric:tabular-nums;color:#dfe5ec}
+.ticker .up{color:#7ee2a8}
+.ticker .dn{color:#ff8a80}
+.ticker .ticker-h{color:var(--yellow);font-weight:700}
+
+/* Kategori ızgarası, simgeli */
+.cat-grid.icons a{flex-direction:row;align-items:center;gap:14px;padding:16px 18px}
+.cat-grid.icons b{font-size:21px}
+.cat-grid.icons small{margin:0 0 0 auto;padding:0;color:var(--muted);font-weight:500}
+
+/* Fiyat tablosu */
+.mkt-head{display:flex;flex-wrap:wrap;gap:16px;align-items:end;justify-content:space-between;margin-bottom:20px}
+.mkt-head .page-h{margin:0}
+.updated{color:var(--muted);font-size:15px}
+.movers{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.mover{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px}
+.mover h2{font:700 15px/1.2 var(--sans);color:var(--muted);margin-bottom:10px}
+.mover ol{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.mover li{display:flex;justify-content:space-between;gap:10px;font-size:15px}
+.mover li span{font-weight:600}
+.chg{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.chg.up{color:var(--green)}
+.chg.dn{color:var(--red)}
+.chg.eq{color:var(--muted)}
+.mover .big{font:800 40px/1 var(--cond)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px;margin-bottom:12px}
+.filters select,.filters input{height:40px;border:1px solid var(--line);border-radius:8px;padding:0 10px;font:inherit;font-size:15px;background:#fff}
+.filters input{min-width:220px}
+.seg-chips{display:flex;gap:6px;flex-wrap:wrap}
+.seg-chips button{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font:600 14px/1 var(--sans);color:var(--ink)}
+.seg-chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.seg-chips button.on .ico{color:#fff}
+.seg-chips .ico{width:30px;height:15px}
+.mkt{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;font-variant-numeric:tabular-nums}
+.mkt th{text-align:left;font:600 13px/1.2 var(--sans);color:var(--muted);padding:12px 14px;border-bottom:1px solid var(--line);background:#f6f8fa;white-space:nowrap}
+.mkt td{padding:12px 14px;border-bottom:1px solid var(--line-2);vertical-align:middle;font-size:15px}
+.mkt tr:last-child td{border-bottom:0}
+.mkt tr.grp td{background:#f6f8fa;font:800 18px/1 var(--cond);padding:10px 14px}
+.mkt tr.grp td a{color:var(--ink);text-decoration:none}
+.mkt .model{display:flex;align-items:center;gap:12px}
+.mkt .model b{display:block;font-weight:700}
+.mkt .model small{color:var(--muted);font-size:13px}
+.mkt .num{text-align:right;white-space:nowrap}
+.mkt .price{font:700 17px/1 var(--sans)}
+.spark{width:96px;height:28px;display:block}
+.mkt .rate{font-weight:600;white-space:nowrap}
+.mkt .rate a{text-decoration:none}
+
+/* Model sayfası sekmeleri */
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin:4px 0 24px;overflow-x:auto}
+.tabs a{padding:12px 14px;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs a.on{color:var(--ink);border-color:var(--yellow)}
+.model-facts{display:flex;flex-wrap:wrap;gap:8px 28px;margin:-6px 0 20px;color:var(--muted)}
+.model-facts b{color:var(--ink)}
+
+/* Zaman çizelgesi */
+.tl-wrap{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:24px 24px 10px;margin-bottom:36px}
+.tl-wrap h2{font:800 28px/1 var(--cond);margin-bottom:4px}
+.tl-scroll{overflow-x:auto;margin:0 -8px;padding:0 8px}
+.tl{position:relative;min-width:980px;height:290px;margin-top:18px}
+.tl-axis{position:absolute;left:0;right:0;top:190px;height:4px;background:var(--ink);border-radius:2px}
+.tl-year{position:absolute;top:202px;transform:translateX(-50%);font:700 14px/1 var(--sans);color:var(--muted)}
+.tl-tick{position:absolute;top:184px;width:2px;height:16px;background:var(--ink);transform:translateX(-1px)}
+.tl-gen{position:absolute;top:0;height:178px;border-left:3px solid var(--blue);padding:0 8px 0 12px;box-sizing:border-box}
+.tl-gen:after{content:"";position:absolute;left:-9px;top:181px;width:15px;height:15px;border-radius:50%;background:var(--yellow);border:3px solid var(--ink)}
+.tl-gen h3{font:800 22px/1 var(--cond);white-space:nowrap}
+.tl-gen .yrs{font-size:13px;color:var(--muted);margin:3px 0 10px}
+.tl-gen ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.tl-gen li{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;white-space:nowrap}
+.tl-gen li .ico{width:40px;height:20px}
+.tl-gen.now{border-left-color:var(--green)}
+.tl-now{font:600 13px var(--sans);color:var(--green);margin-left:6px}
+.tl-ev{position:absolute;top:226px;transform:translateX(-50%);font-size:13px;line-height:1.25;text-align:center;width:110px;color:var(--muted)}
+.tl-ev:before{content:"";display:block;width:2px;height:12px;background:var(--line);margin:0 auto 4px}
+
+/* Paket tablosu */
+.pk{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;font-variant-numeric:tabular-nums}
+.pk th{text-align:left;font:600 13px/1.2 var(--sans);color:var(--muted);padding:12px 14px;background:#f6f8fa;border-bottom:1px solid var(--line)}
+.pk td{padding:13px 14px;border-bottom:1px solid var(--line-2);font-size:15px}
+.pk .num{text-align:right}
+.feat{display:flex;flex-wrap:wrap;gap:6px}
+.feat span{font-size:13px;background:var(--bg);border-radius:999px;padding:3px 9px}
+.sec{margin-bottom:36px}
+.sec > h2{font:800 30px/1 var(--cond);margin-bottom:14px}
+
+.ticker a{color:#fff;text-decoration:none}
+.ticker a:hover b{text-decoration:underline}
+.ticker .chg.up{color:#7ee2a8}.ticker .chg.dn{color:#ff8a80}.ticker .chg.eq{color:#b9c2cc}
+.ticker-row{animation:tick 70s linear infinite}
+.ticker:hover .ticker-row{animation-play-state:paused}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.mini-mkt{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.mini-mkt li{display:grid;grid-template-columns:1fr auto auto;gap:10px;font-size:15px;align-items:baseline}
+.mini-mkt a{color:var(--ink);text-decoration:none;font-weight:600}
+.mini-mkt li>span:first-of-type{font-variant-numeric:tabular-nums;color:var(--muted)}
+.tbl-scroll{overflow-x:auto}
+.mover a{color:var(--ink);text-decoration:none;font-weight:600}
+.mover-sub{color:var(--muted);margin-top:8px;font-size:15px}
+.mover .big .chg{font:800 40px/1 var(--cond)}
+.spark-none{color:var(--muted)}
+.src-note{font-size:14px;color:var(--muted);margin-top:10px}
+.sources{margin-top:20px;font-size:14px;color:var(--muted)}
+.sources summary{cursor:pointer;font-weight:600;color:var(--ink)}
+.sources p{margin:8px 0}
+.sources ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.mkt tr[hidden],.mkt tbody[hidden]{display:none}
+.model-facts .chg{font-size:15px}
+@media (max-width:1020px){.movers{grid-template-columns:1fr}}
+@media (max-width:640px){
+  .ticker{font-size:13px}
+  .cat-grid.icons a{padding:12px}
+  .cat-grid.icons .ico{width:40px;height:20px}
+  .cat-grid.icons b{font-size:18px}
+  .filters input{min-width:0;flex:1 1 100%}
+  .mkt th:nth-child(2),.mkt td:nth-child(2),.mkt th:nth-child(5),.mkt td:nth-child(5),.mkt th:nth-child(6),.mkt td:nth-child(6){display:none}
+}
+@media (prefers-reduced-motion:reduce){.ticker-row{animation:none}}
+
 @media (max-width:1020px){
   .head-nav{display:none}
   .hero-grid{grid-template-columns:1fr;gap:36px;padding-top:40px;padding-bottom:48px}

@@ -26,6 +26,8 @@ const SCHEMA = [
     kind TEXT NOT NULL, target TEXT NOT NULL, voter TEXT NOT NULL, value INTEGER NOT NULL,
     created_at BIGINT NOT NULL, PRIMARY KEY (kind, target, voter))`,
   `CREATE INDEX IF NOT EXISTS votes_target ON votes (kind, target)`,
+  `ALTER TABLE votes ADD COLUMN IF NOT EXISTS ip_hash TEXT NOT NULL DEFAULT ''`,
+  `CREATE INDEX IF NOT EXISTS votes_ip ON votes (ip_hash, created_at)`,
   `CREATE TABLE IF NOT EXISTS reports (
     id SERIAL PRIMARY KEY, kind TEXT NOT NULL, target_id INTEGER NOT NULL, reason TEXT NOT NULL DEFAULT '',
     voter TEXT NOT NULL, created_at BIGINT NOT NULL)`,

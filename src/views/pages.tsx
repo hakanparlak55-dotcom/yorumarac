@@ -1,7 +1,9 @@
 import type { Issue, ModelStats, Review } from "../db";
 import { categories, type Category, modelsFor, slugify } from "../data/categories";
 import { AgainWidget, IssueRow, modelHref, ReviewCard, Scorecard } from "./components";
-import { Breadcrumb, Plate } from "./layout";
+import { Breadcrumb, Change, Icon, Plate, tl } from "./layout";
+import { movers, rows as marketRows, type Row } from "../data/market";
+import type { ModelHistory } from "../data/market/types";
 
 const popular: [string, string, string][] = [
   ["otomobil", "Fiat", "Egea"], ["otomobil", "Renault", "Clio"], ["otomobil", "Toyota", "Corolla"],
@@ -20,7 +22,6 @@ export function Home(p: {
         <div class="wrap hero-grid">
           <div class="hero-copy">
             <h1>Aracını en iyi, onu kullanan anlatır.</h1>
-            <p class="lead">Almadan önce sahiplerine sor. Kendi aracının artısını, eksisini, kronik sorununu ve gerçek tüketimini yaz. Üye olmana gerek yok.</p>
             <form class="plate-search" action="/ara" method="get" role="search">
               <label class="sr" for="big-q">Marka veya model</label>
               <span class="plate-tr" aria-hidden="true">TR</span>
@@ -51,19 +52,17 @@ export function Home(p: {
               </ol>
             ) : (
               <div class="board-empty">
-                <p>Tablo, sahiplerin oylarıyla dolacak. Kullandığın aracı bul ve “Tekrar alır mıydın?” sorusuna tek tıkla cevap ver.</p>
+                <p>Kullandığın aracı bul, “tekrar alır mıydın?” sorusunu cevapla.</p>
                 <a class="btn btn-ghost" href="/kategoriler">Aracımı bul</a>
               </div>
             )}
-            <p class="board-note">Ham oylar. Sponsor ya da editör puanı yok.</p>
           </aside>
         </div>
       </section>
 
       <section class="wrap section" aria-labelledby="cats-h">
         <div class="sec-head">
-          <h2 id="cats-h">Hangi araçla yol alıyorsun?</h2>
-          <a href="/kategoriler">Tüm kategoriler</a>
+          <h2 id="cats-h">Kategoriler</h2>
         </div>
         <CategoryGrid counts={p.counts} />
       </section>
@@ -72,7 +71,7 @@ export function Home(p: {
         <div>
           <div class="sec-head">
             <h2>Son deneyimler</h2>
-            <a href="/son-yorumlar">Hepsini gör</a>
+            <a href="/son-yorumlar">Hepsi</a>
           </div>
           {p.latest.length ? (
             <div class="review-list">{p.latest.map((r) => <ReviewCard r={r} showVehicle voted={p.helpfulMine[String(r.id)] != null} />)}</div>
@@ -82,23 +81,15 @@ export function Home(p: {
         </div>
         <aside class="side">
           <section class="side-box" aria-labelledby="iss-h">
-            <h2 id="iss-h">En çok yaşanan kronik sorunlar</h2>
+            <h2 id="iss-h">Kronik sorunlar</h2>
             {p.issues.length ? (
               <ul class="issue-list compact">{p.issues.map((i) => <IssueRow i={i} showVehicle voted={p.metooMine[String(i.id)] != null} />)}</ul>
             ) : (
-              <p class="empty-mini">Henüz bildirilen sorun yok. Aracında sık tekrarlayan bir arıza mı var? Model sayfasından bildir, aynı sorunu yaşayanlar “Ben de yaşadım” desin.</p>
+              <p class="empty-mini">Henüz bildirilen sorun yok.</p>
             )}
             <a class="side-more" href="/kronik-sorunlar">Tüm sorunlar</a>
           </section>
-          <section class="side-box how">
-            <h2>Burada nasıl işliyor?</h2>
-            <ul>
-              <li><b>Üyelik yok.</b> Bir rumuz yazman yeterli.</li>
-              <li><b>Tek tıkla katıl.</b> Oy ver, “ben de yaşadım” de, faydalı yorumları öne çıkar.</li>
-              <li><b>Para ile sıralama yok.</b> Sıralamayı sadece kullanıcı oyları belirler.</li>
-            </ul>
-            <p class="tot">{p.totals.reviews} deneyim · {p.totals.issues} sorun bildirimi · {p.totals.votes} oy</p>
-          </section>
+          <MarketBox />
         </aside>
       </section>
     </>
@@ -107,17 +98,33 @@ export function Home(p: {
 
 export function CategoryGrid(p: { counts: Record<string, number> }) {
   return (
-    <ul class="cat-grid">
+    <ul class="cat-grid icons">
       {categories.map((c) => (
         <li>
           <a href={`/${c.slug}`}>
+            <Icon name={c.icon} />
             <b>{c.name}</b>
-            <span>{c.hint}</span>
-            <small>{p.counts[c.slug] ? `${p.counts[c.slug]} deneyim` : "İlk deneyimi bekliyor"}</small>
+            {p.counts[c.slug] ? <small>{p.counts[c.slug].toLocaleString("tr-TR")}</small> : null}
           </a>
         </li>
       ))}
     </ul>
+  );
+}
+
+function MarketBox() {
+  const m = movers();
+  const list = [...m.up.slice(0, 2), ...m.down.slice(0, 2)];
+  const items = list.length ? list : marketRows.slice(0, 4);
+  if (!items.length) return null;
+  return (
+    <section class="side-box">
+      <h2>Sıfır fiyatlarda bu ay</h2>
+      <ul class="mini-mkt">
+        {items.map((r) => <li><a href={r.modelHref}>{r.brand} {r.model}</a><span>{tl(r.price)}</span><Change value={r.change} /></li>)}
+      </ul>
+      <a class="side-more" href="/sifir-arac-fiyatlari">Tüm fiyatlar</a>
+    </section>
   );
 }
 
@@ -126,7 +133,6 @@ export function CategoriesPage(p: { counts: Record<string, number> }) {
     <div class="wrap page">
       <Breadcrumb items={[{ label: "Kategoriler" }]} />
       <h1 class="page-h">Tüm araç kategorileri</h1>
-      <p class="page-lead">Otomobilden traktöre {categories.length} kategori. Kategoriyi seç, markanı bul.</p>
       <CategoryGrid counts={p.counts} />
     </div>
   );
@@ -138,7 +144,6 @@ export function CategoryPage(p: { cat: Category; counts: Record<string, number>;
     <div class="wrap page">
       <Breadcrumb items={[{ href: "/kategoriler", label: "Kategoriler" }, { label: p.cat.name }]} />
       <h1 class="page-h">{p.cat.name}</h1>
-      <p class="page-lead">{p.cat.hint}. Markanı seç, model sayfasında sahiplerin karnesini ve kronik sorunları gör.</p>
       <div class="filter-row">
         <label for="brand-filter" class="sr">Marka ara</label>
         <input id="brand-filter" type="search" placeholder="Marka ara" data-filter=".brand-grid li" />
@@ -149,7 +154,7 @@ export function CategoryPage(p: { cat: Category; counts: Record<string, number>;
           <li data-name={b.toLocaleLowerCase("tr")}>
             <a href={`/${p.cat.slug}/${slugify(b)}`}>
               <b>{b}</b>
-              <small>{p.counts[slugify(b)] ? `${p.counts[slugify(b)]} deneyim` : `${modelsFor(p.cat, b).length || ""}${modelsFor(p.cat, b).length ? " model" : "Model sayfası"}`}</small>
+              {p.counts[slugify(b)] ? <small>{p.counts[slugify(b)]} deneyim</small> : null}
             </a>
           </li>
         ))}
@@ -170,7 +175,6 @@ export function BrandPage(p: { cat: Category; brand: string; models: { name: str
     <div class="wrap page">
       <Breadcrumb items={[{ href: `/${p.cat.slug}`, label: p.cat.short }, { label: p.brand }]} />
       <Plate as="h1" text={p.brand.toUpperCase()} size="l" />
-      <p class="page-lead">{p.cat.name} kategorisinde {p.brand}. Modeli seç; listede yoksa deneyimini yazarken adını kendin gir, sayfası açılır.</p>
       {p.models.length ? (
         <>
           <div class="filter-row">
@@ -180,7 +184,7 @@ export function BrandPage(p: { cat: Category; brand: string; models: { name: str
           <ul class="model-grid">
             {p.models.map((m) => (
               <li data-name={m.name.toLocaleLowerCase("tr")}>
-                <a href={`/${p.cat.slug}/${b}/${m.slug}`}><b>{m.name}</b><small>{m.n ? `${m.n} deneyim` : "Deneyim bekliyor"}</small></a>
+                <a href={`/${p.cat.slug}/${b}/${m.slug}`}><b>{m.name}</b>{m.n ? <small>{m.n} deneyim</small> : null}</a>
               </li>
             ))}
           </ul>
@@ -196,10 +200,14 @@ export function BrandPage(p: { cat: Category; brand: string; models: { name: str
 export function ModelPage(p: {
   cat: Category; brand: string; model: string; b: string; m: string; stats: ModelStats; reviews: Review[]; issues: Issue[];
   sort: "yeni" | "faydali"; againMine?: number; helpfulMine: Record<string, number>; metooMine: Record<string, number>;
+  pkgs: Row[]; history: ModelHistory | null; formTime: string;
 }) {
   const name = `${p.brand} ${p.model}`;
   const writeHref = `/yorum-yaz?kategori=${p.cat.slug}&marka=${encodeURIComponent(p.brand)}&model=${encodeURIComponent(p.model)}`;
   const here = modelHref(p.cat.slug, p.b, p.m);
+  const cheapest = p.pkgs.length ? p.pkgs.reduce((a, r) => (r.price < a.price ? r : a)) : null;
+  const first = p.history?.generations[0];
+  const current = p.history?.generations.find((g) => g.to == null);
   return (
     <div class="wrap page">
       <Breadcrumb items={[{ href: `/${p.cat.slug}`, label: p.cat.short }, { href: `/${p.cat.slug}/${p.b}`, label: p.brand }, { label: p.model }]} />
@@ -211,16 +219,50 @@ export function ModelPage(p: {
           <button class="btn btn-ghost" type="button" data-share={name}>Paylaş</button>
         </div>
       </div>
+      {first || cheapest ? (
+        <p class="model-facts">
+          {first ? <span>Üretim: <b>{first.from}'dan beri</b></span> : null}
+          {current ? <span>Satıştaki kasa: <b>{current.name}</b></span> : null}
+          {cheapest ? <span>Sıfır fiyatı: <b>{tl(cheapest.price)}'den</b> <Change value={cheapest.change} /></span> : null}
+          <span>Deneyim: <b>{p.stats.reviews}</b></span>
+        </p>
+      ) : null}
+      <nav class="tabs" aria-label="Bölümler">
+        <a href="#genel">Genel</a>
+        {p.pkgs.length ? <a href="#paketler">Paketler ve fiyatlar</a> : null}
+        {p.history ? <a href="#kasa">Kasa geçmişi</a> : null}
+        <a href="#yorumlar">Deneyimler ({p.reviews.length})</a>
+        <a href="#sorunlar">Kronik sorunlar ({p.issues.length})</a>
+      </nav>
 
-      <div class="model-top">
-        <AgainWidget cat={p.cat.slug} b={p.b} m={p.m} name={name} stats={p.stats} mine={p.againMine} />
+      <div class="model-top" id="genel">
+        <AgainWidget cat={p.cat.slug} b={p.b} m={p.m} name={p.model} stats={p.stats} mine={p.againMine} />
         <Scorecard stats={p.stats} usageLabel={p.cat.usageLabel} usageUnit={p.cat.usageUnit} />
       </div>
+
+      {p.pkgs.length ? (
+        <section class="sec" id="paketler">
+          <h2>Paketler ve fiyatlar</h2>
+          <div class="tbl-scroll">
+            <table class="pk">
+              <thead><tr><th>Paket</th><th>Motor</th><th>Yakıt · vites</th><th class="num">Fiyat</th><th class="num">Aylık</th></tr></thead>
+              <tbody>
+                {[...p.pkgs].sort((a, b) => a.price - b.price).map((r) => (
+                  <tr><td><b>{r.trim}</b></td><td>{r.engine}</td><td>{r.fuel} · {r.gearbox}</td><td class="num"><b>{tl(r.price)}</b></td><td class="num"><Change value={r.change} /></td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="src-note">Tavsiye edilen anahtar teslim liste fiyatları. <a href="/sifir-arac-fiyatlari">Tüm sıfır fiyatlar</a></p>
+        </section>
+      ) : null}
+
+      {p.history ? <Timeline h={p.history} /> : null}
 
       <div class="two-col model-body">
         <section aria-labelledby="yorumlar">
           <div class="sec-head">
-            <h2 id="yorumlar">Sahiplerin deneyimleri <span class="count">{p.reviews.length}</span></h2>
+            <h2 id="yorumlar">Deneyimler <span class="count">{p.reviews.length}</span></h2>
             {p.reviews.length > 1 ? (
               <div class="sort" role="group" aria-label="Sırala">
                 <a href={`${here}?sira=faydali#yorumlar`} aria-current={p.sort === "faydali" ? "true" : undefined}>En faydalı</a>
@@ -241,7 +283,7 @@ export function ModelPage(p: {
             {p.issues.length ? (
               <ul class="issue-list">{p.issues.map((i) => <IssueRow i={i} voted={p.metooMine[String(i.id)] != null} />)}</ul>
             ) : (
-              <p class="empty-mini">Bildirilmiş sorun yok. Bu, sorun olmadığı anlamına gelmeyebilir; yaşadıysan ilk sen bildir.</p>
+              <p class="empty-mini">Bildirilmiş sorun yok.</p>
             )}
           </section>
           <section class="side-box" id="sorun-bildir">
@@ -250,14 +292,14 @@ export function ModelPage(p: {
               <input type="hidden" name="kategori" value={p.cat.slug} />
               <input type="hidden" name="marka" value={p.brand} />
               <input type="hidden" name="model" value={p.model} />
-              <Honeypot />
+              <FormGuard t={p.formTime} />
               <label>Sorun ne?<input name="baslik" required minlength={6} maxlength={90} placeholder="Örn. Soğukta vites geçişleri sertleşiyor" /></label>
-              <label><span class="lbl">Biraz anlat <span class="opt">(isteğe bağlı)</span></span><textarea name="aciklama" rows={3} maxlength={600} placeholder="Ne zaman başladı, nasıl çözüldü, servis ne dedi?" /></label>
+              <label><span class="lbl">Ayrıntı <span class="opt">(isteğe bağlı)</span></span><textarea name="aciklama" rows={3} maxlength={600} /></label>
               <div class="row2">
                 <label>Kaç km'de?<input name="km" inputmode="numeric" pattern="[0-9. ]*" maxlength={9} placeholder="85000" /></label>
-                <label>Rumuz<input name="rumuz" required minlength={2} maxlength={30} placeholder="Örn. Mert34" /></label>
+                <label>Rumuz<input name="rumuz" required minlength={2} maxlength={30} /></label>
               </div>
-              <label class="check"><input type="checkbox" name="onay" required /> <span><a href="/kurallar">Topluluk kurallarını</a> ve <a href="/gizlilik">KVKK metnini</a> okudum.</span></label>
+              <label class="check"><input type="checkbox" name="onay" required /> <span><a href="/kurallar">Kuralları</a> ve <a href="/gizlilik">KVKK metnini</a> okudum.</span></label>
               <button class="btn btn-blue" type="submit">Sorunu bildir</button>
             </form>
           </section>
@@ -267,8 +309,48 @@ export function ModelPage(p: {
   );
 }
 
-export function Honeypot() {
-  return <div class="hp" aria-hidden="true"><label>Web sitesi<input name="website" tabindex={-1} autocomplete="off" /></label></div>;
+const bodyIcon = (b: string) => (b === "sedan" ? "otomobil" : b);
+
+export function Timeline(p: { h: ModelHistory }) {
+  const gens = p.h.generations;
+  const nowY = new Date().getFullYear();
+  const start = Math.min(...gens.map((g) => g.from)) - 2;
+  const end = nowY + 7;
+  const x = (y: number) => ((y - start) / (end - start)) * 100;
+  const ticks: number[] = [];
+  for (let y = Math.ceil(start / 5) * 5; y <= end; y += 5) ticks.push(y);
+  return (
+    <section class="tl-wrap" id="kasa">
+      <h2>Kasa geçmişi</h2>
+      <div class="tl-scroll">
+        <div class="tl">
+          <div class="tl-axis" />
+          {ticks.map((y) => <><span class="tl-tick" style={`left:${x(y)}%`} /><span class="tl-year" style={`left:${x(y)}%`}>{y}</span></>)}
+          {gens.map((g, i) => {
+            const next = gens[i + 1]?.from ?? end;
+            return (
+              <div class={`tl-gen${g.to == null ? " now" : ""}`} style={`left:${x(g.from)}%;width:${x(next) - x(g.from)}%`}>
+                <h3>{g.name}{g.to == null ? <span class="tl-now">satışta</span> : null}</h3>
+                <p class="yrs">{g.from}–{g.to ?? ""}</p>
+                <ul>{g.bodies.map((b) => <li><Icon name={bodyIcon(b.body)} />{b.label}{b.year ? ` · ${b.year}` : ""}</li>)}</ul>
+              </div>
+            );
+          })}
+          {(p.h.events ?? []).map((e) => <div class="tl-ev" style={`left:${x(e.year)}%`}>{e.year}<br />{e.label}</div>)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Bot tuzağı: görünmez alan + formun açıldığı zaman. */
+export function FormGuard(p: { t: string }) {
+  return (
+    <>
+      <div class="hp" aria-hidden="true"><label>Web sitesi<input name="website" tabindex={-1} autocomplete="off" /></label></div>
+      <input type="hidden" name="t" value={p.t} />
+    </>
+  );
 }
 
 export function Empty(p: { title: string; text: string; href?: string; cta?: string }) {
@@ -281,7 +363,7 @@ export function Empty(p: { title: string; text: string; href?: string; cta?: str
   );
 }
 
-export function WritePage(p: { cat: Category; brand: string; model: string; error?: string; values?: Record<string, string> }) {
+export function WritePage(p: { cat: Category; brand: string; model: string; error?: string; values?: Record<string, string>; formTime: string }) {
   const v = p.values ?? {};
   const brands = Object.keys(p.cat.brands).sort((a, b) => a.localeCompare(b, "tr"));
   const models = p.brand ? modelsFor(p.cat, p.brand) : [];
@@ -302,10 +384,10 @@ export function WritePage(p: { cat: Category; brand: string; model: string; erro
     <div class="wrap page narrow">
       <Breadcrumb items={[{ label: "Deneyimini yaz" }]} />
       <h1 class="page-h">Deneyimini yaz</h1>
-      <p class="page-lead">Üyelik yok. Yaklaşık 3 dakika sürer. Yazdığın, bu aracı almayı düşünen birinin kararını değiştirebilir.</p>
+      <p class="page-lead">Üyelik gerekmez.</p>
       {p.error ? <p class="form-error" role="alert">{p.error}</p> : null}
       <form class="form" method="post" action="/yorum" id="write-form">
-        <Honeypot />
+        <FormGuard t={p.formTime} />
         <fieldset class="block">
           <legend>Araç</legend>
           <label>Kategori

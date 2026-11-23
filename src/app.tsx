@@ -6,14 +6,21 @@ import {
   modelStats, myVotes, now, recentReviews, siteTotals, topIssues,
 } from "./db";
 import { type Db, getDb } from "./sql";
+import { checkForm, formStamp, sameOrigin, securityHeaders } from "./security";
+import { currentMonth, modelRows, monthLabel, movers, rows as marketRows, sources as marketSources } from "./data/market";
+import { historyFor } from "./data/market/history";
 import { brandBySlug, categories, categoryBySlug, modelsFor, slugify } from "./data/categories";
 import { Layout, ORIGIN, SITE } from "./views/layout";
 import {
   BrandPage, CategoriesPage, CategoryPage, Home, ListPage, ModelPage, SearchPage, TextPage, WritePage,
 } from "./views/pages";
+import { MarketPage } from "./views/market";
 
 type C = Context<{ Variables: { voter: string } }>;
 const app = new Hono<{ Variables: { voter: string } }>();
+
+app.use("*", securityHeaders);
+app.use("*", sameOrigin);
 
 // Her ziyaretçiye anonim bir cihaz kimliği: aynı oyun tekrar verilmesini engeller.
 app.use("*", async (c, next) => {
@@ -72,6 +79,8 @@ async function resolveModel(db: Db, catSlug: string, bSlug: string, mSlug: strin
   if (!brand) return null;
   const fromCatalog = modelsFor(cat, brand).find((m) => slugify(m) === mSlug);
   if (fromCatalog) return { cat, brand, model: fromCatalog };
+  const fromMarket = marketRows.find((r) => r.category === catSlug && slugify(r.brand) === bSlug && slugify(r.model) === mSlug);
+  if (fromMarket) return { cat, brand, model: fromMarket.model };
   const row = await db.prepare("SELECT model FROM reviews WHERE category=? AND brand_slug=? AND model_slug=? AND status='live' UNION SELECT model FROM issues WHERE category=? AND brand_slug=? AND model_slug=? AND status='live' LIMIT 1").bind(catSlug, bSlug, mSlug, catSlug, bSlug, mSlug).first<{ model: string }>();
   return row ? { cat, brand, model: row.model } : null;
 }
@@ -149,12 +158,12 @@ app.get("/ara", async (c) => {
   return page(c, q ? `${q} araması` : "Araç ara", "/ara", <SearchPage q={q} hits={hits.slice(0, 80)} />, { noindex: true });
 });
 
-app.get("/yorum-yaz", (c) => {
+app.get("/yorum-yaz", async (c) => {
   const cat = categoryBySlug(c.req.query("kategori") ?? "") ?? categories[0];
   const brandQ = c.req.query("marka") ?? "";
   const brand = Object.keys(cat.brands).find((b) => b === brandQ) ?? "";
   const model = brand ? clean(c.req.query("model"), 60) : "";
-  return page(c, "Deneyimini yaz", "/yorum-yaz", <WritePage cat={cat} brand={brand} model={model} />, { noindex: true });
+  return page(c, "Deneyimini yaz", "/yorum-yaz", <WritePage cat={cat} brand={brand} model={model} formTime={await formStamp()} />, { noindex: true });
 });
 
 app.get("/kurallar", (c) => page(c, "Topluluk kuralları", "/kurallar", <TextPage title="Topluluk kuralları" paras={[
@@ -189,8 +198,11 @@ app.post("/yorum", async (c) => {
   const cat = categoryBySlug(f.kategori ?? "") ?? categories[0];
   const brand = Object.keys(cat.brands).find((b) => b === f.marka) ?? "";
   const model = clean(f.model === "__diger" ? f.model_serbest : f.model, 60);
-  const fail = (msg: string) => page(c, "Deneyimini yaz", "/yorum-yaz", <WritePage cat={cat} brand={brand} model={model} error={msg} values={f} />, { status: 400, noindex: true });
-  if (f.website) return c.redirect("/?ok=yorum", 303); // bot tuzağı
+  const formTime = await formStamp();
+  const fail = (msg: string) => page(c, "Deneyimini yaz", "/yorum-yaz", <WritePage cat={cat} brand={brand} model={model} error={msg} values={f} formTime={formTime} />, { status: 400, noindex: true });
+  const guard = await checkForm(f);
+  if (guard === "bot") return c.redirect("/?ok=yorum", 303); // bota başarılı gibi görün
+  if (guard === "expired") return fail("Formun süresi doldu. Bilgilerin duruyor, tekrar gönder.");
   if (!brand) return fail("Markayı listeden seç.");
   if (model.length < 1) return fail("Modeli seç ya da adını yaz.");
   const title = clean(f.baslik, 90), body = clean(f.metin, 4000).replace(/\r/g, "");
@@ -226,7 +238,7 @@ app.post("/sorun", async (c) => {
   if (!cat || !brand || !model) return notFound(c);
   const bSlug = slugify(brand), mSlug = slugify(model);
   const back = `/${cat.slug}/${bSlug}/${mSlug}`;
-  if (f.website) return c.redirect(back, 303);
+  if (await checkForm(f)) return c.redirect(back + "#sorun-bildir", 303);
   const title = clean(f.baslik, 90), nick = clean(f.rumuz, 30), body = clean(f.aciklama, 600);
   if (title.length < 6 || nick.length < 2 || !f.onay || linkCount(title + body) > 0) return c.redirect(back + "#sorun-bildir", 303);
   const ip = await ipHash(c);
@@ -239,7 +251,13 @@ app.post("/sorun", async (c) => {
 
 // ---------- API ----------
 
+const jsonOnly = (c: C) => (c.req.header("content-type") ?? "").startsWith("application/json");
+
 app.post("/api/oy", async (c) => {
+  if (!jsonOnly(c)) return c.json({ error: "Geçersiz istek" }, 415);
+  const ipH = await ipHash(c);
+  const recentVotes = await getDb().prepare("SELECT COUNT(*)::int AS n FROM votes WHERE ip_hash=? AND created_at>?").bind(ipH, now() - 3600).first<{ n: number }>();
+  if ((recentVotes?.n ?? 0) >= 150) return c.json({ error: "Çok fazla oy verdin, biraz sonra tekrar dene." }, 429);
   const body = (await c.req.json().catch(() => ({}))) as { kind?: string; target?: string; value?: number };
   const voter = c.get("voter");
   const db = getDb();
@@ -259,7 +277,7 @@ app.post("/api/oy", async (c) => {
       ]);
     } else {
       await db.batch([
-        db.prepare("INSERT INTO votes (kind,target,voter,value,created_at) VALUES (?,?,?,1,?) ON CONFLICT DO NOTHING").bind(body.kind, String(id), voter, t),
+        db.prepare("INSERT INTO votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,1,?,?) ON CONFLICT DO NOTHING").bind(body.kind, String(id), voter, t, ipH),
         db.prepare(`UPDATE ${table} SET ${col}=${col}+1 WHERE id=?`).bind(id),
       ]);
     }
@@ -271,7 +289,7 @@ app.post("/api/oy", async (c) => {
     const res = cat && b && m ? await resolveModel(db, cat, b, m) : null;
     if (!res) return c.json({ error: "Bulunamadı" }, 404);
     const value = body.value === 1 ? 1 : 0;
-    await db.prepare("INSERT INTO votes (kind,target,voter,value,created_at) VALUES ('again',?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value").bind(modelKey(cat, b, m), voter, value, t).run();
+    await db.prepare("INSERT INTO votes (kind,target,voter,value,created_at,ip_hash) VALUES ('again',?,?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value").bind(modelKey(cat, b, m), voter, value, t, ipH).run();
     const s = await modelStats(db, cat, b, m);
     return c.json({ yes: s.againYes, no: s.againNo, mine: value });
   }
@@ -279,6 +297,9 @@ app.post("/api/oy", async (c) => {
 });
 
 app.post("/api/bildir", async (c) => {
+  if (!jsonOnly(c)) return c.json({ error: "Geçersiz istek" }, 415);
+  const mine = await getDb().prepare("SELECT COUNT(*)::int AS n FROM reports WHERE voter=? AND created_at>?").bind(c.get("voter"), now() - 3600).first<{ n: number }>();
+  if ((mine?.n ?? 0) >= 20) return c.json({ error: "Çok fazla bildirim" }, 429);
   const body = (await c.req.json().catch(() => ({}))) as { kind?: string; target?: string; reason?: string };
   const id = intOrNull(body.target, 1, 1e12);
   if (!id || (body.kind !== "review" && body.kind !== "issue")) return c.json({ error: "Geçersiz" }, 400);
@@ -293,6 +314,13 @@ app.get("/api/katalog/:cat", (c) => {
   const cat = categoryBySlug(c.req.param("cat"));
   if (!cat) return c.json({ error: "Kategori yok" }, 404);
   return c.json({ brands: cat.brands, usageLabel: cat.usageLabel, usageUnit: cat.usageUnit }, 200, { "cache-control": "public, max-age=3600" });
+});
+
+app.get("/sifir-arac-fiyatlari", (c) => {
+  const label = currentMonth ? monthLabel(currentMonth.month) : "";
+  return page(c, `Sıfır araç fiyatları ${label}`.trim(), "/sifir-arac-fiyatlari", <MarketPage rows={marketRows} movers={movers()} month={label} sources={marketSources} />, {
+    description: `${label} sıfır araç fiyat listesi: marka, model ve paket bazında güncel fiyatlar ve aylık değişimler.`,
+  });
 });
 
 // ---------- Kategori / marka / model ----------
@@ -312,6 +340,7 @@ app.get("/:cat/:brand", async (c) => {
   const counted = await modelCounts(getDb(), cat.slug, slugify(brand));
   const map = new Map<string, { name: string; slug: string; n: number }>();
   for (const m of modelsFor(cat, brand)) map.set(slugify(m), { name: m, slug: slugify(m), n: 0 });
+  for (const r of marketRows) if (r.category === cat.slug && r.brand === brand && !map.has(slugify(r.model))) map.set(slugify(r.model), { name: r.model, slug: slugify(r.model), n: 0 });
   for (const r of counted) map.set(r.slug, { name: map.get(r.slug)?.name ?? r.model, slug: r.slug, n: r.n });
   const models = [...map.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name, "tr", { numeric: true }));
   return page(c, `${brand} ${cat.short.toLocaleLowerCase("tr")} yorumları`, `/${cat.slug}/${slugify(brand)}`, <BrandPage cat={cat} brand={brand} models={models} />, { description: `${brand} sahiplerinin ${cat.name.toLocaleLowerCase("tr")} deneyimleri, model model kronik sorunlar ve tekrar alır mısın oyları.` });
@@ -334,7 +363,7 @@ app.get("/:cat/:brand/:model", async (c) => {
   const total = stats.againYes + stats.againNo;
   const desc = `${name} sahipleri ne diyor? ${stats.reviews} gerçek kullanıcı deneyimi, ${issues.length} kronik sorun bildirimi${total ? `, sahiplerinin %${Math.round((stats.againYes / total) * 100)}'i tekrar alırım diyor` : ""}.`;
   return page(c, `${name} yorumları ve kronik sorunları`, `/${cs}/${bs}/${ms}`, (
-    <ModelPage cat={res.cat} brand={res.brand} model={res.model} b={bs} m={ms} stats={stats} reviews={reviews} issues={issues} sort={sort} againMine={again[modelKey(cs, bs, ms)]} helpfulMine={helpfulMine} metooMine={metooMine} />
+    <ModelPage cat={res.cat} brand={res.brand} model={res.model} b={bs} m={ms} stats={stats} reviews={reviews} issues={issues} sort={sort} againMine={again[modelKey(cs, bs, ms)]} helpfulMine={helpfulMine} metooMine={metooMine} pkgs={modelRows(cs, bs, ms)} history={historyFor(`${cs}/${bs}/${ms}`)} formTime={await formStamp()} />
   ), { description: desc });
 });
 

@@ -1,5 +1,6 @@
 import type { Child } from "hono/jsx";
 import { categories } from "../data/categories";
+import { tickerItems } from "../data/market";
 
 export const SITE = "YorumAraç";
 export const ORIGIN = "https://yorumarac.com";
@@ -11,6 +12,40 @@ export function Plate(props: { text: string; size?: "s" | "m" | "l"; as?: "div" 
       <span class="plate-tr" aria-hidden="true">TR</span>
       <span class="plate-text">{props.text}</span>
     </Tag>
+  );
+}
+
+export function Icon(props: { name: string; class?: string }) {
+  return <svg class={props.class ?? "ico"} aria-hidden="true"><use href={`/icons.svg?v=1#i-${props.name}`} /></svg>;
+}
+
+export const tl = (n: number) => `${Math.round(n).toLocaleString("tr-TR")} ₺`;
+export const pct = (n: number) => `%${Math.abs(n).toLocaleString("tr-TR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+
+export function Change(props: { value: number | null }) {
+  const v = props.value;
+  if (v == null) return <span class="chg eq">yeni</span>;
+  const r = Math.round(v * 10) / 10;
+  if (r === 0) return <span class="chg eq">■ %0,0</span>;
+  return <span class={`chg ${r > 0 ? "up" : "dn"}`}>{r > 0 ? "▲" : "▼"} {pct(r)}</span>;
+}
+
+function Ticker() {
+  const items = tickerItems();
+  if (!items.length) return null;
+  return (
+    <div class="ticker" aria-label="Sıfır araç fiyatları">
+      <div class="ticker-row">
+        {[0, 1].map((copy) => (
+          <span class="ticker-set" aria-hidden={copy ? "true" : undefined}>
+            <a class="ticker-h" href="/sifir-arac-fiyatlari" tabindex={copy ? -1 : undefined}>Sıfır fiyatlar</a>
+            {items.map((r) => (
+              <a href={r.modelHref} tabindex={copy ? -1 : undefined}><b>{r.brand} {r.model}</b> <span class="px">{tl(r.price)}</span> <Change value={r.change} /></a>
+            ))}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -34,7 +69,7 @@ export function Layout(props: { title: string; description?: string; path: strin
         <meta name="theme-color" content="#1d4fb5" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preload" href="/fonts/barlow-condensed-latin-ext-800-normal.woff2" as="font" type="font/woff2" crossorigin="" />
-        <link rel="stylesheet" href="/app.css?v=1" />
+        <link rel="stylesheet" href="/app.css?v=2" />
       </head>
       <body>
         <a class="skip" href="#icerik">İçeriğe geç</a>
@@ -48,30 +83,32 @@ export function Layout(props: { title: string; description?: string; path: strin
               <input id="hq" name="q" type="search" placeholder="Marka veya model ara" autocomplete="off" />
             </form>
             <nav class="head-nav" aria-label="Ana menü">
+              <a class="hot" href="/sifir-arac-fiyatlari">Sıfır araç fiyatları</a>
               <a href="/kategoriler">Kategoriler</a>
               <a href="/kronik-sorunlar">Kronik sorunlar</a>
-              <a href="/son-yorumlar">Son yorumlar</a>
             </nav>
             <a class="btn btn-yellow head-cta" href="/yorum-yaz">Deneyimini yaz</a>
           </div>
         </header>
+        <Ticker />
         {props.flash ? <div class="flash" role="status">{props.flash}</div> : null}
         <main id="icerik">{props.children}</main>
         <footer class="site-foot">
           <div class="wrap foot-grid">
             <div>
               <Plate text="YORUM ARAÇ" size="s" />
-              <p class="foot-note">Sürücülerin kendi araçlarını anlattığı bağımsız deneyim platformu. Yorumlar kullanıcılara aittir; ücretli ya da sponsorlu yorum yayımlanmaz.</p>
             </div>
             <div>
               <h2 class="foot-h">Kategoriler</h2>
               <ul class="foot-cats">
-                {categories.map((c) => <li><a href={`/${c.slug}`}>{c.short}</a></li>)}
+                {categories.map((c) => <li><a href={`/${c.slug}`}>{c.name}</a></li>)}
               </ul>
             </div>
             <div>
               <h2 class="foot-h">Site</h2>
               <ul class="foot-links">
+                <li><a href="/sifir-arac-fiyatlari">Sıfır araç fiyatları</a></li>
+                <li><a href="/son-yorumlar">Son deneyimler</a></li>
                 <li><a href="/kurallar">Topluluk kuralları</a></li>
                 <li><a href="/gizlilik">Gizlilik ve KVKK</a></li>
                 <li><a href="mailto:merhaba@yorumarac.com">merhaba@yorumarac.com</a></li>
@@ -80,7 +117,7 @@ export function Layout(props: { title: string; description?: string; path: strin
           </div>
           <div class="wrap foot-bottom">© {new Date().getFullYear()} {SITE}</div>
         </footer>
-        <script src="/app.js?v=1" defer></script>
+        <script src="/app.js?v=2" defer></script>
       </body>
     </html>
   );

@@ -3,6 +3,8 @@ import { carCatalog } from "./cars";
 export type Category = {
   slug: string;
   name: string;
+  /** /icons.svg içindeki simge kimliği */
+  icon: string;
   short: string;
   hint: string;
   /** Marka listesi. Model listesi yoksa kullanıcı modeli kendisi yazar. */
@@ -54,22 +56,22 @@ const farmBrands = list([
 ]);
 
 export const categories: Category[] = [
-  { slug: "otomobil", name: "Otomobil", short: "Otomobil", hint: "Hatchback, sedan, station wagon, coupe", brands: carBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
-  { slug: "arazi-suv-pickup", name: "Arazi, SUV ve Pickup", short: "SUV & Pickup", hint: "Crossover, SUV, arazi aracı, pickup", brands: suvBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
-  { slug: "elektrikli", name: "Elektrikli Araçlar", short: "Elektrikli", hint: "Gerçek menzil, şarj süresi, batarya", brands: evBrands, usageLabel: "Gerçek menzil", usageUnit: "km" },
-  { slug: "motosiklet", name: "Motosiklet", short: "Motosiklet", hint: "Scooter, naked, touring, enduro", brands: motoBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
-  { slug: "minivan-panelvan", name: "Minivan ve Panelvan", short: "Minivan", hint: "Hafif ticari, aile minivanı, panelvan", brands: vanBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
-  { slug: "ticari", name: "Ticari Araçlar", short: "Ticari", hint: "Kamyon, kamyonet, çekici, otobüs, minibüs", brands: commercialBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
-  { slug: "kiralik", name: "Kiralık Araçlar", short: "Kiralık", hint: "Kiraladığın aracı ve firmayı değerlendir", brands: carBrands, usageLabel: null, usageUnit: null },
-  { slug: "deniz", name: "Deniz Araçları", short: "Deniz", hint: "Tekne, yat, jet ski, şişme bot", brands: boatBrands, usageLabel: "Saatlik yakıt tüketimi", usageUnit: "L/saat" },
-  { slug: "hasarli", name: "Hasarlı Araçlar", short: "Hasarlı", hint: "Hasar, onarım, sigorta ve ekspertiz deneyimi", brands: carBrands, usageLabel: null, usageUnit: null },
-  { slug: "karavan", name: "Karavan", short: "Karavan", hint: "Motokaravan, çekme karavan", brands: caravanBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
-  { slug: "klasik", name: "Klasik Araçlar", short: "Klasik", hint: "30 yaş üstü, restorasyon, parça bulma", brands: carBrands, usageLabel: null, usageUnit: null },
-  { slug: "hava", name: "Hava Araçları", short: "Hava", hint: "Uçak, helikopter, ultra hafif", brands: aircraftBrands, usageLabel: "Saatlik yakıt tüketimi", usageUnit: "L/saat" },
-  { slug: "atv", name: "ATV", short: "ATV", hint: "Dört tekerli arazi motosikleti", brands: atvBrands, usageLabel: null, usageUnit: null },
-  { slug: "utv", name: "UTV", short: "UTV", hint: "Yan yana oturmalı arazi aracı", brands: utvBrands, usageLabel: null, usageUnit: null },
-  { slug: "engelli", name: "Engelli Plakalı Araçlar", short: "Engelli plakalı", hint: "ÖTV muafiyeti, adaptasyon, kullanım kolaylığı", brands: carBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
-  { slug: "tarim-is-makineleri", name: "Tarım ve İş Makineleri", short: "Tarım & İş", hint: "Traktör, biçerdöver, iş makinesi", brands: farmBrands, usageLabel: "Saatlik yakıt tüketimi", usageUnit: "L/saat" },
+  { slug: "otomobil", icon: "otomobil", name: "Otomobil", short: "Otomobil", hint: "Hatchback, sedan, station wagon, coupe", brands: carBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
+  { slug: "arazi-suv-pickup", icon: "suv", name: "Arazi, SUV ve Pickup", short: "SUV & Pickup", hint: "Crossover, SUV, arazi aracı, pickup", brands: suvBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
+  { slug: "elektrikli", icon: "elektrikli", name: "Elektrikli Araçlar", short: "Elektrikli", hint: "Gerçek menzil, şarj süresi, batarya", brands: evBrands, usageLabel: "Gerçek menzil", usageUnit: "km" },
+  { slug: "motosiklet", icon: "motosiklet", name: "Motosiklet", short: "Motosiklet", hint: "Scooter, naked, touring, enduro", brands: motoBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
+  { slug: "minivan-panelvan", icon: "minivan", name: "Minivan ve Panelvan", short: "Minivan", hint: "Hafif ticari, aile minivanı, panelvan", brands: vanBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
+  { slug: "ticari", icon: "ticari", name: "Ticari Araçlar", short: "Ticari", hint: "Kamyon, kamyonet, çekici, otobüs, minibüs", brands: commercialBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
+  { slug: "kiralik", icon: "kiralik", name: "Kiralık Araçlar", short: "Kiralık", hint: "Kiraladığın aracı ve firmayı değerlendir", brands: carBrands, usageLabel: null, usageUnit: null },
+  { slug: "deniz", icon: "deniz", name: "Deniz Araçları", short: "Deniz", hint: "Tekne, yat, jet ski, şişme bot", brands: boatBrands, usageLabel: "Saatlik yakıt tüketimi", usageUnit: "L/saat" },
+  { slug: "hasarli", icon: "hasarli", name: "Hasarlı Araçlar", short: "Hasarlı", hint: "Hasar, onarım, sigorta ve ekspertiz deneyimi", brands: carBrands, usageLabel: null, usageUnit: null },
+  { slug: "karavan", icon: "karavan", name: "Karavan", short: "Karavan", hint: "Motokaravan, çekme karavan", brands: caravanBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
+  { slug: "klasik", icon: "klasik", name: "Klasik Araçlar", short: "Klasik", hint: "30 yaş üstü, restorasyon, parça bulma", brands: carBrands, usageLabel: null, usageUnit: null },
+  { slug: "hava", icon: "hava", name: "Hava Araçları", short: "Hava", hint: "Uçak, helikopter, ultra hafif", brands: aircraftBrands, usageLabel: "Saatlik yakıt tüketimi", usageUnit: "L/saat" },
+  { slug: "atv", icon: "atv", name: "ATV", short: "ATV", hint: "Dört tekerli arazi motosikleti", brands: atvBrands, usageLabel: null, usageUnit: null },
+  { slug: "utv", icon: "utv", name: "UTV", short: "UTV", hint: "Yan yana oturmalı arazi aracı", brands: utvBrands, usageLabel: null, usageUnit: null },
+  { slug: "engelli", icon: "engelli", name: "Engelli Plakalı Araçlar", short: "Engelli plakalı", hint: "ÖTV muafiyeti, adaptasyon, kullanım kolaylığı", brands: carBrands, usageLabel: "Ortalama yakıt tüketimi", usageUnit: "L/100 km" },
+  { slug: "tarim-is-makineleri", icon: "tarim", name: "Tarım ve İş Makineleri", short: "Tarım & İş", hint: "Traktör, biçerdöver, iş makinesi", brands: farmBrands, usageLabel: "Saatlik yakıt tüketimi", usageUnit: "L/saat" },
 ];
 
 const trMap: Record<string, string> = { ç: "c", ğ: "g", ı: "i", İ: "i", ö: "o", ş: "s", ü: "u", Ç: "c", Ğ: "g", Ö: "o", Ş: "s", Ü: "u", ë: "e" };

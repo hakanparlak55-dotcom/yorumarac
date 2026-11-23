@@ -80,6 +80,52 @@
     });
   });
 
+  // Sıfır fiyatlar: arama, filtre, sıralama
+  var table = document.getElementById("mkt-table");
+  if (table) {
+    var state = { q: "", brand: "", fuel: "", sort: "", body: "" };
+    var groups = Array.prototype.slice.call(table.querySelectorAll("tbody[data-group]"));
+    var empty = document.getElementById("mkt-empty");
+    function apply() {
+      var shown = 0;
+      var order = groups.map(function (g) {
+        var rows = Array.prototype.slice.call(g.querySelectorAll("tr[data-row]"));
+        var vis = 0, best = null;
+        rows.forEach(function (r) {
+          var ok = (!state.q || r.dataset.text.indexOf(state.q) !== -1) && (!state.brand || r.dataset.brand === state.brand) &&
+            (!state.fuel || r.dataset.fuel === state.fuel) && (!state.body || r.dataset.body === state.body);
+          r.hidden = !ok;
+          if (ok) {
+            vis++;
+            var ch = r.dataset.change === "" ? null : Number(r.dataset.change), pr = Number(r.dataset.price);
+            var v = state.sort === "up" ? -(ch == null ? -1e9 : ch) : state.sort === "down" ? (ch == null ? 1e9 : ch) : state.sort === "cheap" ? pr : state.sort === "exp" ? -pr : 0;
+            if (best == null || v < best) best = v;
+          }
+        });
+        g.hidden = vis === 0;
+        shown += vis;
+        return { g: g, v: best == null ? 0 : best };
+      });
+      if (state.sort) order.sort(function (a, b) { return a.v - b.v; });
+      order.forEach(function (o) { table.appendChild(o.g); });
+      empty.classList.toggle("is-hidden", shown > 0);
+    }
+    document.querySelectorAll("[data-mkt]").forEach(function (el) {
+      el.addEventListener(el.tagName === "INPUT" ? "input" : "change", function () {
+        var k = el.getAttribute("data-mkt");
+        state[k] = k === "q" ? el.value.toLocaleLowerCase("tr").trim() : el.value;
+        apply();
+      });
+    });
+    document.querySelectorAll("[data-mkt-body]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll("[data-mkt-body]").forEach(function (b) { b.classList.toggle("on", b === btn); });
+        state.body = btn.getAttribute("data-mkt-body");
+        apply();
+      });
+    });
+  }
+
   // Yorum formu: kategori → marka → model
   var form = document.getElementById("write-form");
   if (form) {
