@@ -24,7 +24,7 @@ export const pct = (n: number) => `%${Math.abs(n).toLocaleString("tr-TR", { mini
 
 export function Change(props: { value: number | null }) {
   const v = props.value;
-  if (v == null) return <span class="chg eq">yeni</span>;
+  if (v == null) return <span class="chg eq" title="Önceki ay verisi yok">–</span>;
   const r = Math.round(v * 10) / 10;
   if (r === 0) return <span class="chg eq">■ %0,0</span>;
   return <span class={`chg ${r > 0 ? "up" : "dn"}`}>{r > 0 ? "▲" : "▼"} {pct(r)}</span>;

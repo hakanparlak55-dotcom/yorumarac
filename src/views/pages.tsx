@@ -332,13 +332,14 @@ export function Timeline(p: { h: ModelHistory }) {
               <div class={`tl-gen${g.to == null ? " now" : ""}`} style={`left:${x(g.from)}%;width:${x(next) - x(g.from)}%`}>
                 <h3>{g.name}{g.to == null ? <span class="tl-now">satışta</span> : null}</h3>
                 <p class="yrs">{g.from}–{g.to ?? ""}</p>
-                <ul>{g.bodies.map((b) => <li><Icon name={bodyIcon(b.body)} />{b.label}{b.year ? ` · ${b.year}` : ""}</li>)}</ul>
+                {gens.length <= 8 ? <ul>{g.bodies.map((b) => <li><Icon name={bodyIcon(b.body)} />{b.label}{b.year ? ` · ${b.year}` : ""}</li>)}</ul> : <Icon name={bodyIcon(g.bodies[0].body)} />}
               </div>
             );
           })}
           {(p.h.events ?? []).map((e) => <div class="tl-ev" style={`left:${x(e.year)}%`}>{e.year}<br />{e.label}</div>)}
         </div>
       </div>
+      {p.h.sources.length ? <p class="src-note">Kaynak: {p.h.sources.map((u, i) => <>{i ? ", " : ""}<a href={u} rel="nofollow noopener" target="_blank">{new URL(u).hostname.replace("www.", "")}</a></>)}</p> : null}
     </section>
   );
 }
