@@ -1,8 +1,9 @@
+import { env } from "./env";
 import type { MiddlewareHandler } from "hono";
 
 // İmza anahtarı ortam değişkeninden gelir (depo herkese açık; anahtar kodda tutulmaz).
 // FORM_SECRET yoksa veritabanı adresinden türetilir: o da gizli ve tüm sunucularda aynıdır.
-const secretSource = () => process.env.FORM_SECRET ?? process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "yerel-gelistirme";
+const secretSource = () => env("FORM_SECRET") ?? env("DATABASE_URL") ?? env("POSTGRES_URL") ?? "yerel-gelistirme";
 
 let keyPromise: Promise<CryptoKey> | null = null;
 function key() {

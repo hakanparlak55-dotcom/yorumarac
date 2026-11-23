@@ -1,3 +1,4 @@
+import { env } from "./env";
 // Küçük bir veritabanı katmanı: canlıda Neon (Postgres, HTTP), yerelde gömülü PGlite.
 // Sorgular `?` yer tutucusuyla yazılır; burada Postgres'in `$1, $2…` biçimine çevrilir.
 
@@ -80,7 +81,7 @@ let instance: Db | null = null;
 
 export function getDb(): Db {
   if (instance) return instance;
-  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
+  const url = env("DATABASE_URL") ?? env("POSTGRES_URL");
   if (url) {
     instance = new Db(async () => {
       const { neon, types } = await import("@neondatabase/serverless");
@@ -96,7 +97,7 @@ export function getDb(): Db {
       const mod = "@electric-sql/pglite";
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { PGlite } = (await import(/* @vite-ignore */ mod)) as any;
-      const pg = new PGlite(process.env.PGLITE_DIR ?? undefined);
+      const pg = new PGlite(env("PGLITE_DIR") ?? undefined);
       return async (text, params) => ((await pg.query(text, params)) as { rows: Row[] }).rows.map(normalize);
     });
   }
