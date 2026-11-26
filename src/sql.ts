@@ -57,7 +57,13 @@ export class Db {
     if (!this.ready) {
       this.ready = (async () => {
         const run = await this.connect();
-        for (const s of SCHEMA) await run(s, []);
+        for (const s of SCHEMA) {
+          try { await run(s, []); } catch (e) {
+            // Aynı anda açılan iki istek tabloyu birlikte oluşturmaya çalışırsa: zaten var demektir, devam et.
+            const code = (e as { code?: string }).code;
+            if (code !== "23505" && code !== "42P07" && code !== "42710") throw e;
+          }
+        }
         return run;
       })();
       this.ready.catch(() => { this.ready = null; });
