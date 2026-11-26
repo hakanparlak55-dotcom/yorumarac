@@ -3,7 +3,7 @@
 Sürücülerin gerçek araç deneyimleri: yorumlar, kronik sorunlar, "tekrar alır mısın?" oyları.
 
 - Altyapı: [Hono](https://hono.dev) (sunucuda oluşturulan sayfalar), Vercel Functions
-- Veritabanı: Neon Postgres (Vercel Marketplace). Tablolar ilk istekte otomatik oluşur.
+- Veritabanı: Neon Postgres (Vercel Marketplace). Tablolar ilk istekte otomatik oluşur. Veritabanı kanundan projesiyle ortak; bu yüzden YorumAraç'ın tabloları `ya_` önekiyle adlandırılır (`ya_reviews`, `ya_issues`, `ya_votes`, `ya_reports`).
 - Yayın: `main` dalına her gönderim (push) Vercel'de otomatik yayına çıkar.
 
 ## Yerelde çalıştırma
@@ -26,9 +26,9 @@ http://127.0.0.1:3000 adresini aç. Bağlantı adresi (`DATABASE_URL`) yoksa `.p
 Bir içerik 5 farklı kişiden bildirim alınca otomatik gizlenir. Elle müdahale için Neon panelindeki SQL Editor:
 
 ```sql
-SELECT kind, target_id, reason FROM reports ORDER BY id DESC LIMIT 20;
-UPDATE reviews SET status='hidden' WHERE id=12;   -- gizle
-UPDATE reviews SET status='live'   WHERE id=12;   -- geri aç
+SELECT kind, target_id, reason FROM ya_reports ORDER BY id DESC LIMIT 20;
+UPDATE ya_reviews SET status='hidden' WHERE id=12;   -- gizle
+UPDATE ya_reviews SET status='live'   WHERE id=12;   -- geri aç
 ```
 
 ## Klasörler

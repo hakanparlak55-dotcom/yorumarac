@@ -82,7 +82,7 @@ async function resolveModel(db: Db, catSlug: string, bSlug: string, mSlug: strin
   if (fromCatalog) return { cat, brand, model: fromCatalog };
   const fromMarket = marketRows.find((r) => r.category === catSlug && slugify(r.brand) === bSlug && slugify(r.model) === mSlug);
   if (fromMarket) return { cat, brand, model: fromMarket.model };
-  const row = await db.prepare("SELECT model FROM reviews WHERE category=? AND brand_slug=? AND model_slug=? AND status='live' UNION SELECT model FROM issues WHERE category=? AND brand_slug=? AND model_slug=? AND status='live' LIMIT 1").bind(catSlug, bSlug, mSlug, catSlug, bSlug, mSlug).first<{ model: string }>();
+  const row = await db.prepare("SELECT model FROM ya_reviews WHERE category=? AND brand_slug=? AND model_slug=? AND status='live' UNION SELECT model FROM ya_issues WHERE category=? AND brand_slug=? AND model_slug=? AND status='live' LIMIT 1").bind(catSlug, bSlug, mSlug, catSlug, bSlug, mSlug).first<{ model: string }>();
   return row ? { cat, brand, model: row.model } : null;
 }
 
@@ -146,7 +146,7 @@ app.get("/ara", async (c) => {
         }
       }
     }
-    const extra = (await getDb().prepare("SELECT DISTINCT category, brand, brand_slug, model, model_slug FROM reviews WHERE status='live' AND (lower(brand || ' ' || model) LIKE ?) LIMIT 30").bind(`%${needle}%`).all<{ category: string; brand: string; brand_slug: string; model: string; model_slug: string }>()).results;
+    const extra = (await getDb().prepare("SELECT DISTINCT category, brand, brand_slug, model, model_slug FROM ya_reviews WHERE status='live' AND (lower(brand || ' ' || model) LIKE ?) LIMIT 30").bind(`%${needle}%`).all<{ category: string; brand: string; brand_slug: string; model: string; model_slug: string }>()).results;
     for (const e of extra) {
       const href = `/${e.category}/${e.brand_slug}/${e.model_slug}`;
       const cat = categoryBySlug(e.category);
@@ -186,7 +186,7 @@ app.get("/robots.txt", (c) => c.text(`User-agent: *\nAllow: /\nDisallow: /api/\n
 app.get("/sitemap.xml", async (c) => {
   const urls = new Set<string>(["/", "/kategoriler", "/son-yorumlar", "/kronik-sorunlar"]);
   for (const cat of categories) urls.add(`/${cat.slug}`);
-  const rows = (await getDb().prepare("SELECT DISTINCT category, brand_slug, model_slug FROM reviews WHERE status='live'").all<{ category: string; brand_slug: string; model_slug: string }>()).results;
+  const rows = (await getDb().prepare("SELECT DISTINCT category, brand_slug, model_slug FROM ya_reviews WHERE status='live'").all<{ category: string; brand_slug: string; model_slug: string }>()).results;
   for (const r of rows) { urls.add(`/${r.category}/${r.brand_slug}`); urls.add(`/${r.category}/${r.brand_slug}/${r.model_slug}`); }
   const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...urls].map((u) => `<url><loc>${ORIGIN}${u}</loc></url>`).join("\n")}\n</urlset>`;
   return c.body(body, 200, { "content-type": "application/xml; charset=utf-8" });
@@ -217,18 +217,18 @@ app.post("/yorum", async (c) => {
   if (!f.onay) return fail("Kuralları onaylaman gerekiyor.");
   if (linkCount(body + title + (f.artilar ?? "") + (f.eksiler ?? "")) > 0) return fail("Deneyimlere bağlantı eklenemez.");
   const ip = await ipHash(c);
-  const recent = await getDb().prepare("SELECT COUNT(*)::int AS n FROM reviews WHERE ip_hash=? AND created_at>?").bind(ip, now() - 3600).first<{ n: number }>();
+  const recent = await getDb().prepare("SELECT COUNT(*)::int AS n FROM ya_reviews WHERE ip_hash=? AND created_at>?").bind(ip, now() - 3600).first<{ n: number }>();
   if ((recent?.n ?? 0) >= 5) return fail("Kısa sürede çok fazla deneyim gönderildi. Biraz sonra tekrar dene.");
   const bSlug = slugify(brand), mSlug = slugify(model) || "model";
   const year = intOrNull(f.yil, 1900, new Date().getFullYear() + 1);
   const km = intOrNull(f.km, 0, 5_000_000);
   const usage = cat.usageLabel ? floatOrNull(f.tuketim, 0.1, 2000) : null;
   const res = await getDb().prepare(
-    "INSERT INTO reviews (category,brand,brand_slug,model,model_slug,year,km,nickname,city,title,body,pros,cons,usage_value,s_comfort,s_economy,s_reliability,s_cost,buy_again,ip_hash,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
+    "INSERT INTO ya_reviews (category,brand,brand_slug,model,model_slug,year,km,nickname,city,title,body,pros,cons,usage_value,s_comfort,s_economy,s_reliability,s_cost,buy_again,ip_hash,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
   ).bind(cat.slug, brand, bSlug, model, mSlug, year, km, nick, clean(f.sehir, 30), title, body, clean(f.artilar, 500), clean(f.eksiler, 500), usage, s[0], s[1], s[2], s[3], Number(f.tekrar), ip, now()).run();
   // Deneyim yazan aracın sahibidir; "tekrar alırım" cevabı da ankete sayılır.
   const key = modelKey(cat.slug, bSlug, mSlug);
-  const upsert = "INSERT INTO votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value";
+  const upsert = "INSERT INTO ya_votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value";
   await getDb().batch([
     getDb().prepare(upsert).bind("owner", key, c.get("voter"), 1, now(), ip),
     getDb().prepare(upsert).bind("again", key, c.get("voter"), Number(f.tekrar), now(), ip),
@@ -248,10 +248,10 @@ app.post("/sorun", async (c) => {
   const title = clean(f.baslik, 90), nick = clean(f.rumuz, 30), body = clean(f.aciklama, 600);
   if (title.length < 6 || nick.length < 2 || !f.onay || linkCount(title + body) > 0) return c.redirect(back + "#sorun-bildir", 303);
   const ip = await ipHash(c);
-  const recent = await getDb().prepare("SELECT COUNT(*)::int AS n FROM issues WHERE ip_hash=? AND created_at>?").bind(ip, now() - 3600).first<{ n: number }>();
+  const recent = await getDb().prepare("SELECT COUNT(*)::int AS n FROM ya_issues WHERE ip_hash=? AND created_at>?").bind(ip, now() - 3600).first<{ n: number }>();
   if ((recent?.n ?? 0) >= 8) return c.redirect(back, 303);
-  const res = await getDb().prepare("INSERT INTO issues (category,brand,brand_slug,model,model_slug,title,body,km,nickname,ip_hash,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id").bind(cat.slug, brand, bSlug, model, mSlug, title, body, intOrNull(f.km, 0, 5_000_000), nick, ip, now()).run();
-  await getDb().prepare("INSERT INTO votes (kind,target,voter,value,created_at) VALUES ('metoo',?,?,1,?) ON CONFLICT DO NOTHING").bind(String(res.meta.last_row_id), c.get("voter"), now()).run();
+  const res = await getDb().prepare("INSERT INTO ya_issues (category,brand,brand_slug,model,model_slug,title,body,km,nickname,ip_hash,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id").bind(cat.slug, brand, bSlug, model, mSlug, title, body, intOrNull(f.km, 0, 5_000_000), nick, ip, now()).run();
+  await getDb().prepare("INSERT INTO ya_votes (kind,target,voter,value,created_at) VALUES ('metoo',?,?,1,?) ON CONFLICT DO NOTHING").bind(String(res.meta.last_row_id), c.get("voter"), now()).run();
   return c.redirect(`${back}?ok=sorun#sorun-${res.meta.last_row_id}`, 303);
 });
 
@@ -262,7 +262,7 @@ const jsonOnly = (c: C) => (c.req.header("content-type") ?? "").startsWith("appl
 app.post("/api/oy", async (c) => {
   if (!jsonOnly(c)) return c.json({ error: "Geçersiz istek" }, 415);
   const ipH = await ipHash(c);
-  const recentVotes = await getDb().prepare("SELECT COUNT(*)::int AS n FROM votes WHERE ip_hash=? AND created_at>?").bind(ipH, now() - 3600).first<{ n: number }>();
+  const recentVotes = await getDb().prepare("SELECT COUNT(*)::int AS n FROM ya_votes WHERE ip_hash=? AND created_at>?").bind(ipH, now() - 3600).first<{ n: number }>();
   if ((recentVotes?.n ?? 0) >= 150) return c.json({ error: "Çok fazla oy verdin, biraz sonra tekrar dene." }, 429);
   const body = (await c.req.json().catch(() => ({}))) as { kind?: string; target?: string; value?: number };
   const voter = c.get("voter");
@@ -271,19 +271,19 @@ app.post("/api/oy", async (c) => {
   if (body.kind === "helpful" || body.kind === "metoo") {
     const id = intOrNull(body.target, 1, 1e12);
     if (!id) return c.json({ error: "Geçersiz hedef" }, 400);
-    const table = body.kind === "helpful" ? "reviews" : "issues";
+    const table = body.kind === "helpful" ? "ya_reviews" : "ya_issues";
     const col = body.kind === "helpful" ? "helpful" : "me_too";
     const exists = await db.prepare(`SELECT id FROM ${table} WHERE id=? AND status='live'`).bind(id).first();
     if (!exists) return c.json({ error: "Bulunamadı" }, 404);
-    const had = await db.prepare("SELECT 1 FROM votes WHERE kind=? AND target=? AND voter=?").bind(body.kind, String(id), voter).first();
+    const had = await db.prepare("SELECT 1 FROM ya_votes WHERE kind=? AND target=? AND voter=?").bind(body.kind, String(id), voter).first();
     if (had) {
       await db.batch([
-        db.prepare("DELETE FROM votes WHERE kind=? AND target=? AND voter=?").bind(body.kind, String(id), voter),
+        db.prepare("DELETE FROM ya_votes WHERE kind=? AND target=? AND voter=?").bind(body.kind, String(id), voter),
         db.prepare(`UPDATE ${table} SET ${col}=GREATEST(0, ${col}-1) WHERE id=?`).bind(id),
       ]);
     } else {
       await db.batch([
-        db.prepare("INSERT INTO votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,1,?,?) ON CONFLICT DO NOTHING").bind(body.kind, String(id), voter, t, ipH),
+        db.prepare("INSERT INTO ya_votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,1,?,?) ON CONFLICT DO NOTHING").bind(body.kind, String(id), voter, t, ipH),
         db.prepare(`UPDATE ${table} SET ${col}=${col}+1 WHERE id=?`).bind(id),
       ]);
     }
@@ -296,7 +296,7 @@ app.post("/api/oy", async (c) => {
     if (!res) return c.json({ error: "Bulunamadı" }, 404);
     const key = modelKey(cat, b, m);
     const value = body.value === 1 ? 1 : 0;
-    await db.prepare("INSERT INTO votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value").bind(body.kind, key, voter, value, t, ipH).run();
+    await db.prepare("INSERT INTO ya_votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value").bind(body.kind, key, voter, value, t, ipH).run();
     const [poll, owner, again] = await Promise.all([pollStats(db, key), myVotes(db, voter, "owner", [key]), myVotes(db, voter, "again", [key])]);
     const html = await (<PollWidget cat={cat} b={b} m={m} name={res.model} poll={poll} mineOwner={owner[key]} mineAgain={again[key]} />).toString();
     return c.json({ html });
@@ -306,15 +306,15 @@ app.post("/api/oy", async (c) => {
 
 app.post("/api/bildir", async (c) => {
   if (!jsonOnly(c)) return c.json({ error: "Geçersiz istek" }, 415);
-  const mine = await getDb().prepare("SELECT COUNT(*)::int AS n FROM reports WHERE voter=? AND created_at>?").bind(c.get("voter"), now() - 3600).first<{ n: number }>();
+  const mine = await getDb().prepare("SELECT COUNT(*)::int AS n FROM ya_reports WHERE voter=? AND created_at>?").bind(c.get("voter"), now() - 3600).first<{ n: number }>();
   if ((mine?.n ?? 0) >= 20) return c.json({ error: "Çok fazla bildirim" }, 429);
   const body = (await c.req.json().catch(() => ({}))) as { kind?: string; target?: string; reason?: string };
   const id = intOrNull(body.target, 1, 1e12);
   if (!id || (body.kind !== "review" && body.kind !== "issue")) return c.json({ error: "Geçersiz" }, 400);
-  await getDb().prepare("INSERT INTO reports (kind,target_id,reason,voter,created_at) VALUES (?,?,?,?,?)").bind(body.kind, id, clean(body.reason, 300), c.get("voter"), now()).run();
+  await getDb().prepare("INSERT INTO ya_reports (kind,target_id,reason,voter,created_at) VALUES (?,?,?,?,?)").bind(body.kind, id, clean(body.reason, 300), c.get("voter"), now()).run();
   // 5 farklı bildirim alan içerik incelenene kadar gizlenir.
-  const n = await getDb().prepare("SELECT COUNT(DISTINCT voter)::int AS n FROM reports WHERE kind=? AND target_id=?").bind(body.kind, id).first<{ n: number }>();
-  if ((n?.n ?? 0) >= 5) await getDb().prepare(`UPDATE ${body.kind === "review" ? "reviews" : "issues"} SET status='hidden' WHERE id=?`).bind(id).run();
+  const n = await getDb().prepare("SELECT COUNT(DISTINCT voter)::int AS n FROM ya_reports WHERE kind=? AND target_id=?").bind(body.kind, id).first<{ n: number }>();
+  if ((n?.n ?? 0) >= 5) await getDb().prepare(`UPDATE ${body.kind === "review" ? "ya_reviews" : "ya_issues"} SET status='hidden' WHERE id=?`).bind(id).run();
   return c.json({ ok: true });
 });
 

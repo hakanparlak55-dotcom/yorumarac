@@ -1,12 +1,13 @@
 import { env } from "./env.js";
 // Küçük bir veritabanı katmanı: canlıda Neon (Postgres, HTTP), yerelde gömülü PGlite.
+// Veritabanı başka bir projeyle (kanundan) ortak: tüm tablolar `ya_` önekli, başka tabloya dokunulmaz.
 // Sorgular `?` yer tutucusuyla yazılır; burada Postgres'in `$1, $2…` biçimine çevrilir.
 
 type Row = Record<string, unknown>;
 type Exec = (text: string, params: unknown[]) => Promise<Row[]>;
 
 const SCHEMA = [
-  `CREATE TABLE IF NOT EXISTS reviews (
+  `CREATE TABLE IF NOT EXISTS ya_reviews (
     id SERIAL PRIMARY KEY, category TEXT NOT NULL, brand TEXT NOT NULL, brand_slug TEXT NOT NULL,
     model TEXT NOT NULL, model_slug TEXT NOT NULL, year INTEGER, km INTEGER, nickname TEXT NOT NULL,
     city TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, body TEXT NOT NULL, pros TEXT NOT NULL DEFAULT '',
@@ -14,22 +15,22 @@ const SCHEMA = [
     s_economy INTEGER NOT NULL, s_reliability INTEGER NOT NULL, s_cost INTEGER NOT NULL, buy_again INTEGER,
     helpful INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'live', ip_hash TEXT NOT NULL DEFAULT '',
     created_at BIGINT NOT NULL)`,
-  `CREATE INDEX IF NOT EXISTS reviews_model ON reviews (category, brand_slug, model_slug, status)`,
-  `CREATE INDEX IF NOT EXISTS reviews_recent ON reviews (status, created_at DESC)`,
-  `CREATE TABLE IF NOT EXISTS issues (
+  `CREATE INDEX IF NOT EXISTS ya_reviews_model ON ya_reviews (category, brand_slug, model_slug, status)`,
+  `CREATE INDEX IF NOT EXISTS ya_reviews_recent ON ya_reviews (status, created_at DESC)`,
+  `CREATE TABLE IF NOT EXISTS ya_issues (
     id SERIAL PRIMARY KEY, category TEXT NOT NULL, brand TEXT NOT NULL, brand_slug TEXT NOT NULL,
     model TEXT NOT NULL, model_slug TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '',
     km INTEGER, nickname TEXT NOT NULL, me_too INTEGER NOT NULL DEFAULT 1, status TEXT NOT NULL DEFAULT 'live',
     ip_hash TEXT NOT NULL DEFAULT '', created_at BIGINT NOT NULL)`,
-  `CREATE INDEX IF NOT EXISTS issues_model ON issues (category, brand_slug, model_slug, status)`,
+  `CREATE INDEX IF NOT EXISTS ya_issues_model ON ya_issues (category, brand_slug, model_slug, status)`,
   // kind: 'helpful' (yorum), 'metoo' (sorun), 'again' (model: tekrar alır mısın). Bir cihaz bir hedefe bir oy.
-  `CREATE TABLE IF NOT EXISTS votes (
+  `CREATE TABLE IF NOT EXISTS ya_votes (
     kind TEXT NOT NULL, target TEXT NOT NULL, voter TEXT NOT NULL, value INTEGER NOT NULL,
     created_at BIGINT NOT NULL, PRIMARY KEY (kind, target, voter))`,
-  `CREATE INDEX IF NOT EXISTS votes_target ON votes (kind, target)`,
-  `ALTER TABLE votes ADD COLUMN IF NOT EXISTS ip_hash TEXT NOT NULL DEFAULT ''`,
-  `CREATE INDEX IF NOT EXISTS votes_ip ON votes (ip_hash, created_at)`,
-  `CREATE TABLE IF NOT EXISTS reports (
+  `CREATE INDEX IF NOT EXISTS ya_votes_target ON ya_votes (kind, target)`,
+  `ALTER TABLE ya_votes ADD COLUMN IF NOT EXISTS ip_hash TEXT NOT NULL DEFAULT ''`,
+  `CREATE INDEX IF NOT EXISTS ya_votes_ip ON ya_votes (ip_hash, created_at)`,
+  `CREATE TABLE IF NOT EXISTS ya_reports (
     id SERIAL PRIMARY KEY, kind TEXT NOT NULL, target_id INTEGER NOT NULL, reason TEXT NOT NULL DEFAULT '',
     voter TEXT NOT NULL, created_at BIGINT NOT NULL)`,
 ];
