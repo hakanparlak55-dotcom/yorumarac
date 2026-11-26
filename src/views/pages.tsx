@@ -1,6 +1,6 @@
 import type { Issue, ModelStats, Review } from "../db.js";
 import { categories, type Category, modelsFor, slugify } from "../data/categories.js";
-import { AgainWidget, IssueRow, modelHref, ReviewCard, Scorecard } from "./components.js";
+import { IssueRow, modelHref, PollWidget, ReviewCard, Scorecard } from "./components.js";
 import { Breadcrumb, Change, Icon, Plate, tl } from "./layout.js";
 import { movers, rows as marketRows, type Row } from "../data/market/index.js";
 import type { ModelHistory } from "../data/market/types.js";
@@ -19,7 +19,7 @@ export function Home(p: {
   return (
     <>
       <section class="hero">
-        <div class="wrap hero-grid">
+        <div class={`wrap hero-grid${p.board.length ? "" : " solo"}`}>
           <div class="hero-copy">
             <h1>Aracını en iyi, onu kullanan anlatır.</h1>
             <form class="plate-search" action="/ara" method="get" role="search">
@@ -32,9 +32,9 @@ export function Home(p: {
               {popular.map(([c, b, m]) => <li><a href={modelHref(c, slugify(b), slugify(m))}>{b} {m}</a></li>)}
             </ul>
           </div>
+          {p.board.length ? (
           <aside class="hero-board" aria-labelledby="board-h">
-            <h2 id="board-h">Sahipleri tekrar alır mı?</h2>
-            {p.board.length ? (
+            <h2 id="board-h">Alır mıydın?</h2>
               <ol class="board">
                 {p.board.map((r) => {
                   const pct = Math.round((r.yes / r.total) * 100);
@@ -50,13 +50,8 @@ export function Home(p: {
                   );
                 })}
               </ol>
-            ) : (
-              <div class="board-empty">
-                <p>Kullandığın aracı bul, “tekrar alır mıydın?” sorusunu cevapla.</p>
-                <a class="btn btn-ghost" href="/kategoriler">Aracımı bul</a>
-              </div>
-            )}
           </aside>
+          ) : null}
         </div>
       </section>
 
@@ -80,15 +75,13 @@ export function Home(p: {
           )}
         </div>
         <aside class="side">
-          <section class="side-box" aria-labelledby="iss-h">
-            <h2 id="iss-h">Kronik sorunlar</h2>
-            {p.issues.length ? (
+          {p.issues.length ? (
+            <section class="side-box" aria-labelledby="iss-h">
+              <h2 id="iss-h">Kronik sorunlar</h2>
               <ul class="issue-list compact">{p.issues.map((i) => <IssueRow i={i} showVehicle voted={p.metooMine[String(i.id)] != null} />)}</ul>
-            ) : (
-              <p class="empty-mini">Henüz bildirilen sorun yok.</p>
-            )}
-            <a class="side-more" href="/kronik-sorunlar">Tüm sorunlar</a>
-          </section>
+              <a class="side-more" href="/kronik-sorunlar">Tüm sorunlar</a>
+            </section>
+          ) : null}
           <MarketBox />
         </aside>
       </section>
@@ -199,7 +192,7 @@ export function BrandPage(p: { cat: Category; brand: string; models: { name: str
 
 export function ModelPage(p: {
   cat: Category; brand: string; model: string; b: string; m: string; stats: ModelStats; reviews: Review[]; issues: Issue[];
-  sort: "yeni" | "faydali"; againMine?: number; helpfulMine: Record<string, number>; metooMine: Record<string, number>;
+  sort: "yeni" | "faydali"; ownerMine?: number; againMine?: number; helpfulMine: Record<string, number>; metooMine: Record<string, number>;
   pkgs: Row[]; history: ModelHistory | null; formTime: string;
 }) {
   const name = `${p.brand} ${p.model}`;
@@ -215,7 +208,6 @@ export function ModelPage(p: {
         <Plate as="h1" text={name.toUpperCase()} size="l" />
         <div class="model-actions">
           <a class="btn btn-yellow" href={writeHref}>Deneyimini yaz</a>
-          <a class="btn btn-ghost" href="#sorun-bildir">Sorun bildir</a>
           <button class="btn btn-ghost" type="button" data-share={name}>Paylaş</button>
         </div>
       </div>
@@ -224,35 +216,34 @@ export function ModelPage(p: {
           {first ? <span>Üretim: <b>{first.from}'dan beri</b></span> : null}
           {current ? <span>Satıştaki kasa: <b>{current.name}</b></span> : null}
           {cheapest ? <span>Sıfır fiyatı: <b>{tl(cheapest.price)}'den</b> <Change value={cheapest.change} /></span> : null}
-          <span>Deneyim: <b>{p.stats.reviews}</b></span>
         </p>
       ) : null}
       <nav class="tabs" aria-label="Bölümler">
-        <a href="#genel">Genel</a>
-        {p.pkgs.length ? <a href="#paketler">Paketler ve fiyatlar</a> : null}
+        {p.pkgs.length ? <a href="#paketler">Fiyatlar</a> : null}
         {p.history ? <a href="#kasa">Kasa geçmişi</a> : null}
         <a href="#yorumlar">Deneyimler ({p.reviews.length})</a>
         <a href="#sorunlar">Kronik sorunlar ({p.issues.length})</a>
       </nav>
 
-      <div class="model-top" id="genel">
-        <AgainWidget cat={p.cat.slug} b={p.b} m={p.m} name={p.model} stats={p.stats} mine={p.againMine} />
-        <Scorecard stats={p.stats} usageLabel={p.cat.usageLabel} usageUnit={p.cat.usageUnit} />
+      <div class={`model-top${p.stats.reviews ? "" : " solo"}`} id="genel">
+        <PollWidget cat={p.cat.slug} b={p.b} m={p.m} name={p.model} poll={p.stats} mineOwner={p.ownerMine} mineAgain={p.againMine} />
+        {p.stats.reviews ? <Scorecard stats={p.stats} usageLabel={p.cat.usageLabel} usageUnit={p.cat.usageUnit} /> : null}
       </div>
 
       {p.pkgs.length ? (
         <section class="sec" id="paketler">
           <h2>Paketler ve fiyatlar</h2>
-          <div class="tbl-scroll">
-            <table class="pk">
-              <thead><tr><th>Paket</th><th>Motor</th><th>Yakıt · vites</th><th class="num">Fiyat</th><th class="num">Aylık</th></tr></thead>
-              <tbody>
-                {[...p.pkgs].sort((a, b) => a.price - b.price).map((r) => (
-                  <tr><td><b>{r.trim}</b></td><td>{r.engine}</td><td>{r.fuel} · {r.gearbox}</td><td class="num"><b>{tl(r.price)}</b></td><td class="num"><Change value={r.change} /></td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <table class="pk">
+            <thead><tr><th>Paket</th><th class="num">Fiyat</th></tr></thead>
+            <tbody>
+              {[...p.pkgs].sort((a, b) => a.price - b.price).map((r) => (
+                <tr>
+                  <td><b>{r.trim}</b><small>{r.engine} · {r.fuel} · {r.gearbox}</small></td>
+                  <td class="num"><b>{tl(r.price)}</b><small><Change value={r.change} /></small></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <p class="src-note">Tavsiye edilen anahtar teslim liste fiyatları. <a href="/sifir-arac-fiyatlari">Tüm sıfır fiyatlar</a></p>
         </section>
       ) : null}
@@ -285,9 +276,8 @@ export function ModelPage(p: {
             ) : (
               <p class="empty-mini">Bildirilmiş sorun yok.</p>
             )}
-          </section>
-          <section class="side-box" id="sorun-bildir">
-            <h2>Sorun bildir</h2>
+            <details class="report" id="sorun-bildir">
+              <summary class="btn btn-ghost">Sorun bildir</summary>
             <form class="form compact-form" method="post" action="/sorun">
               <input type="hidden" name="kategori" value={p.cat.slug} />
               <input type="hidden" name="marka" value={p.brand} />
@@ -302,6 +292,7 @@ export function ModelPage(p: {
               <label class="check"><input type="checkbox" name="onay" required /> <span><a href="/kurallar">Kuralları</a> ve <a href="/gizlilik">KVKK metnini</a> okudum.</span></label>
               <button class="btn btn-blue" type="submit">Sorunu bildir</button>
             </form>
+            </details>
           </section>
         </aside>
       </div>
@@ -443,18 +434,7 @@ export function WritePage(p: { cat: Category; brand: string; model: string; erro
             <textarea name="metin" required minlength={60} maxlength={4000} rows={7} placeholder="Ne kadar süredir kullanıyorsun? Neyi seviyorsun, seni ne yordu? Serviste ne yaşadın?">{v.metin ?? ""}</textarea>
             <small class="counter" data-count-for="metin">En az 60 karakter</small>
           </label>
-          <div class="row2">
-            <label><span class="lbl">Artılar <span class="opt">(isteğe bağlı)</span></span><textarea name="artilar" rows={3} maxlength={500} placeholder="Ekonomik, geniş bagaj">{v.artilar ?? ""}</textarea></label>
-            <label><span class="lbl">Eksiler <span class="opt">(isteğe bağlı)</span></span><textarea name="eksiler" rows={3} maxlength={500} placeholder="Yol sesi, sert süspansiyon">{v.eksiler ?? ""}</textarea></label>
-          </div>
-        </fieldset>
-
-        <fieldset class="block">
-          <legend>Sen</legend>
-          <div class="row2">
-            <label>Rumuz<input name="rumuz" required minlength={2} maxlength={30} placeholder="Örn. Mert34" value={v.rumuz ?? ""} /></label>
-            <label><span class="lbl">Şehir <span class="opt">(isteğe bağlı)</span></span><input name="sehir" maxlength={30} placeholder="İzmir" value={v.sehir ?? ""} /></label>
-          </div>
+          <label>Rumuz<input name="rumuz" required minlength={2} maxlength={30} placeholder="Örn. Mert34" value={v.rumuz ?? ""} /></label>
           <label class="check"><input type="checkbox" name="onay" required /> <span>Bu aracı gerçekten kullandım. <a href="/kurallar">Topluluk kurallarını</a> ve <a href="/gizlilik">KVKK metnini</a> okudum.</span></label>
         </fieldset>
         <button class="btn btn-blue btn-big" type="submit">Deneyimimi yayımla</button>

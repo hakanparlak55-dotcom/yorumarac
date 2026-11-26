@@ -1,5 +1,4 @@
 import type { Child } from "hono/jsx";
-import { categories } from "../data/categories.js";
 import { tickerItems } from "../data/market/index.js";
 
 export const SITE = "YorumAraç";
@@ -69,7 +68,7 @@ export function Layout(props: { title: string; description?: string; path: strin
         <meta name="theme-color" content="#1d4fb5" />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="preload" href="/fonts/barlow-condensed-latin-ext-800-normal.woff2" as="font" type="font/woff2" crossorigin="" />
-        <link rel="stylesheet" href="/app.css?v=2" />
+        <link rel="stylesheet" href="/app.css?v=3" />
       </head>
       <body>
         <a class="skip" href="#icerik">İçeriğe geç</a>
@@ -99,14 +98,8 @@ export function Layout(props: { title: string; description?: string; path: strin
               <Plate text="YORUM ARAÇ" size="s" />
             </div>
             <div>
-              <h2 class="foot-h">Kategoriler</h2>
-              <ul class="foot-cats">
-                {categories.map((c) => <li><a href={`/${c.slug}`}>{c.name}</a></li>)}
-              </ul>
-            </div>
-            <div>
-              <h2 class="foot-h">Site</h2>
               <ul class="foot-links">
+                <li><a href="/kategoriler">Kategoriler</a></li>
                 <li><a href="/sifir-arac-fiyatlari">Sıfır araç fiyatları</a></li>
                 <li><a href="/son-yorumlar">Son deneyimler</a></li>
                 <li><a href="/kurallar">Topluluk kuralları</a></li>
@@ -117,7 +110,7 @@ export function Layout(props: { title: string; description?: string; path: strin
           </div>
           <div class="wrap foot-bottom">© {new Date().getFullYear()} {SITE}</div>
         </footer>
-        <script src="/app.js?v=2" defer></script>
+        <script src="/app.js?v=3" defer></script>
       </body>
     </html>
   );

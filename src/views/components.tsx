@@ -82,24 +82,44 @@ export function IssueRow(props: { i: Issue; voted?: boolean; showVehicle?: boole
   );
 }
 
-export function AgainWidget(props: { cat: string; b: string; m: string; name: string; stats: ModelStats; mine?: number }) {
-  const total = props.stats.againYes + props.stats.againNo;
-  const pct = total ? Math.round((props.stats.againYes / total) * 100) : 0;
+export type PollData = Pick<ModelStats, "againYes" | "againNo" | "ownerYes" | "ownerNo" | "ownersBuyYes" | "ownersBuyTotal">;
+
+/** Model sayfasındaki iki soruluk anket. Oy verilince sunucu bu bileşeni yeniden üretip gönderir. */
+export function PollWidget(props: { cat: string; b: string; m: string; name: string; poll: PollData; mineOwner?: number; mineAgain?: number }) {
+  const p = props.poll;
   const target = modelKey(props.cat, props.b, props.m);
+  const owners = p.ownerYes + p.ownerNo;
+  const total = p.againYes + p.againNo;
+  const pct = total ? Math.round((p.againYes / total) * 100) : 0;
+  const ownersPct = p.ownersBuyTotal ? Math.round((p.ownersBuyYes / p.ownersBuyTotal) * 100) : 0;
+  const choice = (kind: string, value: 1 | 0, label: string, mine?: number) => (
+    <button type="button" class={`${value ? "poll-yes" : "poll-no"}${mine === value ? " is-on" : ""}`} data-vote={kind} data-target={target} data-value={String(value)} aria-pressed={mine === value ? "true" : "false"}>{label}</button>
+  );
   return (
-    <section class={`again${props.mine != null ? " has-voted" : ""}`} data-again={target} aria-labelledby="again-h">
-      <h2 id="again-h" class="again-q">{props.name} sende var mı ya da oldu mu? Tekrar alır mıydın?</h2>
-      <div class="again-btns">
-        <button type="button" class={`again-yes${props.mine === 1 ? " is-on" : ""}`} data-vote="again" data-target={target} data-value="1" aria-pressed={props.mine === 1 ? "true" : "false"}>Evet, alırım</button>
-        <button type="button" class={`again-no${props.mine === 0 ? " is-on" : ""}`} data-vote="again" data-target={target} data-value="0" aria-pressed={props.mine === 0 ? "true" : "false"}>Hayır, almam</button>
+    <section class="poll" data-poll={target} aria-label={`${props.name} anketi`}>
+      <div class="poll-q">
+        <h2>{props.name} sende var mı?</h2>
+        <div class="poll-btns">
+          {choice("owner", 1, "Evet", props.mineOwner)}
+          {choice("owner", 0, "Hayır", props.mineOwner)}
+        </div>
+        {owners ? <p class="poll-note">{p.ownerYes} kişide var, {p.ownerNo} kişide yok</p> : null}
       </div>
-      <div class="again-result" aria-live="polite">
-        <div class="again-bar"><i style={`width:${pct}%`} /></div>
-        <p class="again-text">
-          {total
-            ? <><b class="again-pct">%{pct}</b> sahibi tekrar alırım diyor <span class="again-total">({total} oy)</span></>
-            : <>Henüz oy yok. İlk oyu sen ver.</>}
-        </p>
+      <div class="poll-q">
+        <h2>Bu aracı alır mıydın?</h2>
+        <div class="poll-btns">
+          {choice("again", 1, "Evet, alırım", props.mineAgain)}
+          {choice("again", 0, "Hayır, almam", props.mineAgain)}
+        </div>
+        <div class="poll-result" aria-live="polite">
+          <div class="poll-bar"><i style={`width:${pct}%`} /></div>
+          <p class="poll-text">
+            {total
+              ? <><b class="poll-pct">%{pct}</b> alırım diyor <span class="poll-total">({total} oy)</span></>
+              : <>Henüz oy yok. İlk oyu sen ver.</>}
+          </p>
+          {p.ownersBuyTotal ? <p class="poll-note">Aracı olanlarda: <b>%{ownersPct}</b> tekrar alırım diyor ({p.ownersBuyTotal} oy)</p> : null}
+        </div>
       </div>
     </section>
   );

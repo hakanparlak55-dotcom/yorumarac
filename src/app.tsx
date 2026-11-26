@@ -3,8 +3,9 @@ import { getCookie, setCookie } from "hono/cookie";
 import type { Child } from "hono/jsx";
 import {
   againBoard, brandCounts, categoryCounts, modelCounts, modelIssues, modelKey, modelReviews,
-  modelStats, myVotes, now, recentReviews, siteTotals, topIssues,
+  modelStats, myVotes, now, pollStats, recentReviews, siteTotals, topIssues,
 } from "./db.js";
+import { PollWidget } from "./views/components.js";
 import { type Db, getDb, NO_DB } from "./sql.js";
 import { checkForm, formStamp, sameOrigin, securityHeaders } from "./security.js";
 import { currentMonth, modelRows, monthLabel, movers, rows as marketRows, sources as marketSources } from "./data/market/index.js";
@@ -225,8 +226,13 @@ app.post("/yorum", async (c) => {
   const res = await getDb().prepare(
     "INSERT INTO reviews (category,brand,brand_slug,model,model_slug,year,km,nickname,city,title,body,pros,cons,usage_value,s_comfort,s_economy,s_reliability,s_cost,buy_again,ip_hash,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id",
   ).bind(cat.slug, brand, bSlug, model, mSlug, year, km, nick, clean(f.sehir, 30), title, body, clean(f.artilar, 500), clean(f.eksiler, 500), usage, s[0], s[1], s[2], s[3], Number(f.tekrar), ip, now()).run();
-  // Yorumdaki "tekrar alırım" cevabı model oyuna da sayılır.
-  await getDb().prepare("INSERT INTO votes (kind,target,voter,value,created_at) VALUES ('again',?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value").bind(modelKey(cat.slug, bSlug, mSlug), c.get("voter"), Number(f.tekrar), now()).run();
+  // Deneyim yazan aracın sahibidir; "tekrar alırım" cevabı da ankete sayılır.
+  const key = modelKey(cat.slug, bSlug, mSlug);
+  const upsert = "INSERT INTO votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value";
+  await getDb().batch([
+    getDb().prepare(upsert).bind("owner", key, c.get("voter"), 1, now(), ip),
+    getDb().prepare(upsert).bind("again", key, c.get("voter"), Number(f.tekrar), now(), ip),
+  ]);
   return c.redirect(`/${cat.slug}/${bSlug}/${mSlug}?ok=yorum#yorum-${res.meta.last_row_id}`, 303);
 });
 
@@ -284,14 +290,16 @@ app.post("/api/oy", async (c) => {
     const row = await db.prepare(`SELECT ${col} AS n FROM ${table} WHERE id=?`).bind(id).first<{ n: number }>();
     return c.json({ n: row?.n ?? 0, on: !had });
   }
-  if (body.kind === "again") {
+  if (body.kind === "again" || body.kind === "owner") {
     const [cat, b, m] = String(body.target ?? "").split("/");
     const res = cat && b && m ? await resolveModel(db, cat, b, m) : null;
     if (!res) return c.json({ error: "Bulunamadı" }, 404);
+    const key = modelKey(cat, b, m);
     const value = body.value === 1 ? 1 : 0;
-    await db.prepare("INSERT INTO votes (kind,target,voter,value,created_at,ip_hash) VALUES ('again',?,?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value").bind(modelKey(cat, b, m), voter, value, t, ipH).run();
-    const s = await modelStats(db, cat, b, m);
-    return c.json({ yes: s.againYes, no: s.againNo, mine: value });
+    await db.prepare("INSERT INTO votes (kind,target,voter,value,created_at,ip_hash) VALUES (?,?,?,?,?,?) ON CONFLICT(kind,target,voter) DO UPDATE SET value=excluded.value").bind(body.kind, key, voter, value, t, ipH).run();
+    const [poll, owner, again] = await Promise.all([pollStats(db, key), myVotes(db, voter, "owner", [key]), myVotes(db, voter, "again", [key])]);
+    const html = await (<PollWidget cat={cat} b={b} m={m} name={res.model} poll={poll} mineOwner={owner[key]} mineAgain={again[key]} />).toString();
+    return c.json({ html });
   }
   return c.json({ error: "Geçersiz işlem" }, 400);
 });
@@ -354,16 +362,17 @@ app.get("/:cat/:brand/:model", async (c) => {
   const db = getDb();
   const [stats, reviews, issues] = await Promise.all([modelStats(db, cs, bs, ms), modelReviews(db, cs, bs, ms, sort), modelIssues(db, cs, bs, ms)]);
   const voter = c.get("voter");
-  const [again, helpfulMine, metooMine] = await Promise.all([
+  const [owner, again, helpfulMine, metooMine] = await Promise.all([
+    myVotes(db, voter, "owner", [modelKey(cs, bs, ms)]),
     myVotes(db, voter, "again", [modelKey(cs, bs, ms)]),
     myVotes(db, voter, "helpful", reviews.map((r) => String(r.id))),
     myVotes(db, voter, "metoo", issues.map((i) => String(i.id))),
   ]);
   const name = `${res.brand} ${res.model}`;
   const total = stats.againYes + stats.againNo;
-  const desc = `${name} sahipleri ne diyor? ${stats.reviews} gerçek kullanıcı deneyimi, ${issues.length} kronik sorun bildirimi${total ? `, sahiplerinin %${Math.round((stats.againYes / total) * 100)}'i tekrar alırım diyor` : ""}.`;
+  const desc = `${name} sahipleri ne diyor? ${stats.reviews} gerçek kullanıcı deneyimi, ${issues.length} kronik sorun bildirimi${total ? `, oy verenlerin %${Math.round((stats.againYes / total) * 100)}'i alırım diyor` : ""}.`;
   return page(c, `${name} yorumları ve kronik sorunları`, `/${cs}/${bs}/${ms}`, (
-    <ModelPage cat={res.cat} brand={res.brand} model={res.model} b={bs} m={ms} stats={stats} reviews={reviews} issues={issues} sort={sort} againMine={again[modelKey(cs, bs, ms)]} helpfulMine={helpfulMine} metooMine={metooMine} pkgs={modelRows(cs, bs, ms)} history={historyFor(`${cs}/${bs}/${ms}`)} formTime={await formStamp()} />
+    <ModelPage cat={res.cat} brand={res.brand} model={res.model} b={bs} m={ms} stats={stats} reviews={reviews} issues={issues} sort={sort} ownerMine={owner[modelKey(cs, bs, ms)]} againMine={again[modelKey(cs, bs, ms)]} helpfulMine={helpfulMine} metooMine={metooMine} pkgs={modelRows(cs, bs, ms)} history={historyFor(`${cs}/${bs}/${ms}`)} formTime={await formStamp()} />
   ), { description: desc });
 });
 

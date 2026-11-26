@@ -13,6 +13,10 @@ export type Issue = {
 export type ModelStats = {
   reviews: number; comfort: number | null; economy: number | null; reliability: number | null; cost: number | null;
   usage: number | null; usageCount: number; againYes: number; againNo: number;
+  /** "Sende var mı?" cevapları. */
+  ownerYes: number; ownerNo: number;
+  /** "Alır mıydın?" cevaplarından aracı olduğunu söyleyenlerinki. */
+  ownersBuyYes: number; ownersBuyTotal: number;
 };
 
 export const modelKey = (category: string, brandSlug: string, modelSlug: string) => `${category}/${brandSlug}/${modelSlug}`;
@@ -40,16 +44,41 @@ export async function topIssues(db: Db, limit = 6) {
 }
 
 export async function modelStats(db: Db, cat: string, b: string, m: string): Promise<ModelStats> {
-  const [agg, again] = await db.batch([
+  const [agg, poll] = await db.batch([
     db.prepare(`SELECT COUNT(*)::int AS reviews, AVG(s_comfort)::float8 AS comfort, AVG(s_economy)::float8 AS economy, AVG(s_reliability)::float8 AS reliability, AVG(s_cost)::float8 AS cost, AVG(usage_value)::float8 AS usage, COUNT(usage_value)::int AS "usageCount" FROM reviews WHERE status='live' AND category=? AND brand_slug=? AND model_slug=?`).bind(cat, b, m),
-    db.prepare("SELECT COALESCE(SUM(CASE WHEN value=1 THEN 1 ELSE 0 END),0)::int AS yes, COALESCE(SUM(CASE WHEN value=0 THEN 1 ELSE 0 END),0)::int AS no FROM votes WHERE kind='again' AND target=?").bind(modelKey(cat, b, m)),
+    pollQuery(db, modelKey(cat, b, m)),
   ]);
   const a = (agg.results[0] ?? {}) as Record<string, number | null>;
-  const g = (again.results[0] ?? {}) as Record<string, number | null>;
   return {
     reviews: Number(a.reviews ?? 0), comfort: a.comfort ?? null, economy: a.economy ?? null, reliability: a.reliability ?? null,
-    cost: a.cost ?? null, usage: a.usage ?? null, usageCount: Number(a.usageCount ?? 0), againYes: Number(g.yes ?? 0), againNo: Number(g.no ?? 0),
+    cost: a.cost ?? null, usage: a.usage ?? null, usageCount: Number(a.usageCount ?? 0), ...pollCounts(poll.results),
   };
+}
+
+/** İki soru: 'owner' (sende var mı?) ve 'again' (alır mıydın?). Aynı cihazın iki cevabı eşleştirilir. */
+function pollQuery(db: Db, key: string) {
+  return db.prepare(
+    `SELECT 'owner' AS q, value AS v, -1 AS owner, COUNT(*)::int AS n FROM votes WHERE kind='owner' AND target=? GROUP BY value
+     UNION ALL
+     SELECT 'again', a.value, COALESCE(o.value, -1), COUNT(*)::int FROM votes a
+       LEFT JOIN votes o ON o.kind='owner' AND o.target=a.target AND o.voter=a.voter
+       WHERE a.kind='again' AND a.target=? GROUP BY a.value, o.value`,
+  ).bind(key, key);
+}
+
+function pollCounts(rows: Record<string, unknown>[]) {
+  const out = { againYes: 0, againNo: 0, ownerYes: 0, ownerNo: 0, ownersBuyYes: 0, ownersBuyTotal: 0 };
+  for (const r of rows) {
+    const v = Number(r.v), n = Number(r.n), owner = Number(r.owner);
+    if (r.q === "owner") { if (v === 1) out.ownerYes += n; else out.ownerNo += n; continue; }
+    if (v === 1) out.againYes += n; else out.againNo += n;
+    if (owner === 1) { out.ownersBuyTotal += n; if (v === 1) out.ownersBuyYes += n; }
+  }
+  return out;
+}
+
+export async function pollStats(db: Db, key: string) {
+  return pollCounts((await pollQuery(db, key).all()).results);
 }
 
 /** Kategori içindeki marka başına yorum sayısı. */

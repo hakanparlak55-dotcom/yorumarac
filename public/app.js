@@ -19,7 +19,7 @@
     }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || "Hata"); return j; }); });
   }
 
-  // Tek tık oylar: faydalı, ben de yaşadım, tekrar alır mısın
+  // Tek tık oylar: faydalı, ben de yaşadım ve model anketi (sende var mı, alır mıydın)
   document.addEventListener("click", function (e) {
     var btn = e.target.closest("[data-vote]");
     if (btn) {
@@ -27,22 +27,17 @@
       var kind = btn.getAttribute("data-vote");
       var target = btn.getAttribute("data-target");
       var payload = { kind: kind, target: target };
-      if (kind === "again") payload.value = Number(btn.getAttribute("data-value"));
+      var poll = kind === "again" || kind === "owner";
+      if (poll) payload.value = Number(btn.getAttribute("data-value"));
       btn.disabled = true;
       post("/api/oy", payload).then(function (res) {
-        if (kind === "again") {
-          var box = btn.closest("[data-again]");
-          var total = res.yes + res.no;
-          var pct = total ? Math.round((res.yes / total) * 100) : 0;
-          box.classList.add("has-voted");
-          box.querySelectorAll("[data-vote]").forEach(function (b) {
-            var on = Number(b.getAttribute("data-value")) === res.mine;
-            b.classList.toggle("is-on", on);
-            b.setAttribute("aria-pressed", on ? "true" : "false");
-          });
-          box.querySelector(".again-bar i").style.width = pct + "%";
-          box.querySelector(".again-text").innerHTML = '<b class="again-pct">%' + pct + '</b> sahibi tekrar alırım diyor <span class="again-total">(' + total + ' oy)</span>';
-          toast("Oyun kaydedildi");
+        if (poll) {
+          // Sunucu anket kutusunu güncel sonuçlarla yeniden üretip gönderir.
+          var box = btn.closest("[data-poll]");
+          var wrap = document.createElement("div");
+          wrap.innerHTML = res.html;
+          if (box && wrap.firstElementChild) box.replaceWith(wrap.firstElementChild);
+          toast("Cevabın kaydedildi");
         } else {
           btn.classList.toggle("is-on", res.on);
           btn.setAttribute("aria-pressed", res.on ? "true" : "false");
@@ -70,6 +65,14 @@
       else if (navigator.clipboard) { navigator.clipboard.writeText(location.href).then(function () { toast("Bağlantı kopyalandı"); }); }
     }
   });
+
+  // "Sorun bildir" bağlantısıyla gelinince kapalı formu aç.
+  function openReport() {
+    var d = document.getElementById("sorun-bildir");
+    if (d && location.hash === "#sorun-bildir") { d.open = true; d.scrollIntoView({ block: "start" }); }
+  }
+  window.addEventListener("hashchange", openReport);
+  openReport();
 
   // Liste içi filtre (marka/model ara)
   document.querySelectorAll("[data-filter]").forEach(function (input) {
